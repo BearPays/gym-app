@@ -7,7 +7,8 @@ import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import Loading from "@/components/ui/Loading";
 import WorkoutExerciseItem from "@/components/workout/WorkoutExerciseItem";
-import ExercisePicker, { ExercisePickerOption } from "@/components/exercise/ExercisePicker";
+import ExercisePickerModal from "@/components/exercise/ExercisePickerModal";
+import { ExercisePickerOption } from "@/components/exercise/ExercisePicker";
 import Link from "next/link";
 
 export default function ActiveWorkout() {
@@ -154,21 +155,30 @@ export default function ActiveWorkout() {
       </div>
 
       <div className="mb-8">
-        <h2 className="text-xl font-semibold mb-2">Exercises</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Exercises</h2>
+          <ExercisePickerModal
+            providedExercises={availableExercises}
+            onSelectExercise={handleAddExercise}
+            buttonText="Add Exercise"
+            modalTitle="Add Exercise to Workout"
+          />
+        </div>
+        
         <p className="text-gray-600 dark:text-gray-300 mb-4">
           {activeWorkout.exercises.length} exercise{activeWorkout.exercises.length !== 1 ? 's' : ''} added
         </p>
         
-        <ExercisePicker
-          providedExercises={availableExercises}
-          onSelectExercise={handleAddExercise}
-          buttonText="Add to Workout"
-          className="mb-6"
-        />
-        
         {activeWorkout.exercises.length === 0 ? (
           <div className="text-center py-10 border border-dashed border-gray-300 rounded-lg">
-            <p>No exercises added yet. Select an exercise above to begin.</p>
+            <p className="mb-4">No exercises added yet. Add your first exercise to start.</p>
+            <ExercisePickerModal
+              providedExercises={availableExercises}
+              onSelectExercise={handleAddExercise}
+              buttonText="Add First Exercise"
+              buttonVariant="primary"
+              modalTitle="Select Exercise"
+            />
           </div>
         ) : (
           <div className="space-y-6">

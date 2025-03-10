@@ -128,6 +128,7 @@ const ExercisePicker: React.FC<ExercisePickerProps> = ({
     return <Loading text="Loading exercises..." />;
   }
 
+  // Update the height for the modal context
   return (
     <div className={`${className}`}>
       <div className="mb-4">
@@ -181,7 +182,7 @@ const ExercisePicker: React.FC<ExercisePickerProps> = ({
         )}
       </div>
 
-      <div className="max-h-60 overflow-y-auto border border-gray-300 dark:border-gray-700 rounded-lg">
+      <div className="max-h-80 overflow-y-auto border border-gray-300 dark:border-gray-700 rounded-lg">
         {filteredExercises.length === 0 ? (
           <div className="p-4 text-center text-gray-500">
             No exercises found matching the filters.

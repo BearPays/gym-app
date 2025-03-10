@@ -7,7 +7,8 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Loading from "@/components/ui/Loading";
 import ExerciseForm from "@/components/exercise/ExerciseForm";
-import ExercisePicker, { ExercisePickerOption } from "@/components/exercise/ExercisePicker";
+import ExercisePickerModal from "@/components/exercise/ExercisePickerModal";
+import { ExercisePickerOption } from "@/components/exercise/ExercisePicker";
 
 type Exercise = {
   id: string;
@@ -33,6 +34,7 @@ export default function EditTemplate({ params }: { params: { id: string } }) {
   const [template, setTemplate] = useState<Template | null>(null);
   const [templateName, setTemplateName] = useState("");
   const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [availableExercises, setAvailableExercises] = useState<ExercisePickerOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const { isAuthenticated } = useAuth();
@@ -57,13 +59,12 @@ export default function EditTemplate({ params }: { params: { id: string } }) {
         setExercises(templateData.exercises);
         
         // Fetch available exercises
-        // Fetch available exercises
         const exercisesRes = await fetch("/api/exercises");
         if (!exercisesRes.ok) {
           throw new Error("Failed to fetch exercises");
         }
-        // We don't need to store these exercises as the ExercisePicker 
-        // component fetches them on its own
+        const exercisesData = await exercisesRes.json();
+        setAvailableExercises(exercisesData);
       } catch (error) {
         console.error("Failed to fetch data:", error);
         alert("Failed to load template data. Redirecting back to templates.");
@@ -198,17 +199,26 @@ export default function EditTemplate({ params }: { params: { id: string } }) {
         />
 
         <div className="mb-6">
-          <h2 className="text-xl mb-4">Exercises</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl">Exercises</h2>
+            <ExercisePickerModal
+              providedExercises={availableExercises}
+              onSelectExercise={handleAddExercise}
+              buttonText="Add Exercise"
+              modalTitle="Add Exercise to Template"
+            />
+          </div>
           
-          <ExercisePicker 
-            onSelectExercise={handleAddExercise}
-            className="mb-6"
-          />
-
           {exercises.length === 0 ? (
-            <p className="text-center py-4 border border-dashed border-gray-300 rounded">
-              No exercises added yet. Select an exercise above.
-            </p>
+            <div className="text-center py-10 border border-dashed border-gray-300 rounded">
+              <p className="mb-4">No exercises added yet. Add your first exercise to start.</p>
+              <ExercisePickerModal
+                providedExercises={availableExercises}
+                onSelectExercise={handleAddExercise}
+                buttonText="Add First Exercise"
+                modalTitle="Select Exercise"
+              />
+            </div>
           ) : (
             <div className="space-y-6">
               {exercises.map((exercise, exerciseIndex) => (
