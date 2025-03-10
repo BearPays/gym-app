@@ -3,6 +3,11 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import Select from "@/components/ui/Select";
+import Loading from "@/components/ui/Loading";
+import ExerciseForm from "@/components/exercise/ExerciseForm";
 
 type Exercise = {
   id: string;
@@ -110,9 +115,7 @@ export default function EditTemplate({ params }: { params: { id: string } }) {
   const handleSetChange = (exerciseIndex: number, setIndex: number, field: keyof Set, value: number) => {
     const updatedExercises = [...exercises];
     
-    // Make sure the exercise and set exist
     if (updatedExercises[exerciseIndex] && updatedExercises[exerciseIndex].sets[setIndex]) {
-      // Create a new set object with the updated field
       updatedExercises[exerciseIndex].sets[setIndex] = {
         ...updatedExercises[exerciseIndex].sets[setIndex],
         [field]: value
@@ -188,56 +191,50 @@ export default function EditTemplate({ params }: { params: { id: string } }) {
   };
 
   if (isLoading) {
-    return <div className="min-h-screen p-8">Loading template data...</div>;
+    return <Loading text="Loading template data..." />;
   }
 
   if (!template) {
     return <div className="min-h-screen p-8">Template not found</div>;
   }
 
+  const exerciseOptions = availableExercises.map(exercise => ({
+    value: exercise.id,
+    label: `${exercise.name} ${exercise.category ? `(${exercise.category})` : ''}`
+  }));
+
   return (
     <div className="min-h-screen p-8">
       <h1 className="text-2xl font-bold mb-6">Edit Workout Template</h1>
       
       <form onSubmit={handleSubmit}>
-        <div className="mb-6">
-          <label htmlFor="templateName" className="block mb-2 text-sm font-medium">
-            Template Name
-          </label>
-          <input
-            id="templateName"
-            type="text"
-            value={templateName}
-            onChange={(e) => setTemplateName(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded"
-            required
-          />
-        </div>
+        <Input
+          id="templateName"
+          label="Template Name"
+          value={templateName}
+          onChange={(e) => setTemplateName(e.target.value)}
+          required
+          className="mb-6"
+        />
 
         <div className="mb-6">
           <h2 className="text-xl mb-4">Exercises</h2>
           
           <div className="flex gap-2 mb-4">
-            <select
+            <Select
+              id="exerciseSelect"
               value={selectedExercise}
               onChange={(e) => setSelectedExercise(e.target.value)}
-              className="flex-1 p-2 border border-gray-300 rounded"
-            >
-              <option value="">Select Exercise</option>
-              {availableExercises.map((exercise) => (
-                <option key={exercise.id} value={exercise.id}>
-                  {exercise.name} {exercise.category ? `(${exercise.category})` : ''}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
+              options={exerciseOptions}
+              placeholder="Select Exercise"
+              className="flex-1"
+            />
+            <Button
               onClick={handleAddExercise}
-              className="bg-blue-600 text-white px-4 py-2 rounded"
               disabled={!selectedExercise}
             >
               Add Exercise
-            </button>
+            </Button>
           </div>
 
           {exercises.length === 0 ? (
@@ -247,97 +244,39 @@ export default function EditTemplate({ params }: { params: { id: string } }) {
           ) : (
             <div className="space-y-6">
               {exercises.map((exercise, exerciseIndex) => (
-                <div key={exerciseIndex} className="border border-gray-300 rounded p-4">
-                  <div className="flex justify-between mb-2">
-                    <h3 className="font-medium">{exercise.name}</h3>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveExercise(exerciseIndex)}
-                      className="text-red-600 text-sm"
-                    >
-                      Remove
-                    </button>
-                  </div>
-
-                  {/* Sets */}
-                  <div className="space-y-3">
-                    {exercise.sets.map((set, setIndex) => (
-                      <div key={set.id} className="flex gap-3 items-center">
-                        <span className="w-10">#{setIndex + 1}</span>
-                        <div>
-                          <label className="text-xs block">Reps</label>
-                          <input
-                            type="number"
-                            min="1"
-                            value={set.reps}
-                            onChange={(e) => handleSetChange(
-                              exerciseIndex, 
-                              setIndex, 
-                              "reps", 
-                              e.target.value ? parseInt(e.target.value) : 0
-                            )}
-                            className="w-20 p-1 border border-gray-300 rounded"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-xs block">Weight (kg)</label>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.5"
-                            value={set.weight}
-                            onChange={(e) => handleSetChange(
-                              exerciseIndex, 
-                              setIndex, 
-                              "weight", 
-                              e.target.value ? parseFloat(e.target.value) : 0
-                            )}
-                            className="w-20 p-1 border border-gray-300 rounded"
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveSet(exerciseIndex, setIndex)}
-                          className="text-red-600 text-sm ml-auto"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => handleAddSet(exerciseIndex)}
-                    className="mt-3 text-blue-600 text-sm"
-                  >
-                    + Add Set
-                  </button>
-                </div>
+                <ExerciseForm
+                  key={exerciseIndex}
+                  exercise={exercise}
+                  onRemove={() => handleRemoveExercise(exerciseIndex)}
+                  onAddSet={() => handleAddSet(exerciseIndex)}
+                  onRemoveSet={(setIndex) => handleRemoveSet(exerciseIndex, setIndex)}
+                  onSetChange={(setIndex, field, value) => 
+                    handleSetChange(exerciseIndex, setIndex, field, value)
+                  }
+                />
               ))}
             </div>
           )}
         </div>
 
         <div className="mt-8 flex gap-4">
-          <button
+          <Button
             type="submit"
             disabled={isSaving}
-            className={`flex-1 p-3 rounded font-medium ${
-              isSaving 
-                ? "bg-gray-400 text-white cursor-not-allowed" 
-                : "bg-blue-600 text-white hover:bg-blue-700"
-            }`}
+            fullWidth
+            className="flex-1"
           >
             {isSaving ? "Saving..." : "Update Template"}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="secondary"
             onClick={handleCancel}
-            className="flex-1 p-3 bg-gray-300 text-gray-800 rounded font-medium hover:bg-gray-400"
+            fullWidth
+            className="flex-1"
           >
             Cancel
-          </button>
+          </Button>
         </div>
       </form>
     </div>

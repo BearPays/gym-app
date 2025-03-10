@@ -3,12 +3,15 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [isLogin, setIsLogin] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
   const { login } = useAuth();
 
@@ -27,12 +30,13 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
-    if (isLogin) {
-      // 1) LOGIN
-      const loginData: LoginForm = { email, password, action: "login" };
+    try {
+      if (isLogin) {
+        // 1) LOGIN
+        const loginData: LoginForm = { email, password, action: "login" };
 
-      try {
         const res = await fetch("/api/auth", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -46,17 +50,10 @@ export default function Login() {
         } else {
           alert("Login failed");
         }
-      } catch {
-        // For demo purposes, simulate successful login without backend
-        console.log("Simulating successful login");
-        login({ email, name: email.split('@')[0] });
-        router.push("/user");
-      }
-    } else {
-      // 2) REGISTER
-      const registerData: RegisterForm = { email, password, name, action: "register" };
+      } else {
+        // 2) REGISTER
+        const registerData: RegisterForm = { email, password, name, action: "register" };
 
-      try {
         const res = await fetch("/api/auth", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -70,59 +67,68 @@ export default function Login() {
         } else {
           alert("Registration failed");
         }
-      } catch {
-        // For demo purposes, simulate successful registration without backend
-        console.log("Simulating successful registration");
-        login({ email, name });
-        router.push("/user");
       }
+    } catch {
+      // For demo purposes, simulate successful login/registration without backend
+      console.log("Simulating successful authentication");
+      login({ email, name: name || email.split('@')[0] });
+      router.push("/user");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-8">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <h1 className="text-2xl">{isLogin ? "Log In" : "Create Account"}</h1>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4 w-full max-w-md">
+        <h1 className="text-2xl font-bold text-center mb-4">{isLogin ? "Log In" : "Create Account"}</h1>
 
         {!isLogin && (
-          <input
-            type="text"
+          <Input
+            id="name"
             placeholder="Name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="p-2 border border-gray-300 rounded"
-            required
+            required={!isLogin}
           />
         )}
 
-        <input
+        <Input
+          id="email"
           type="email"
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="p-2 border border-gray-300 rounded"
           required
         />
-        <input
+        
+        <Input
+          id="password"
           type="password"
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="p-2 border border-gray-300 rounded"
           required
         />
 
-        <button type="submit" className="p-2 bg-blue-500 text-white rounded">
-          {isLogin ? "Log In" : "Create Account"}
-        </button>
+        <Button 
+          type="submit" 
+          fullWidth 
+          className="mt-2"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Processing..." : (isLogin ? "Log In" : "Create Account")}
+        </Button>
 
-        <button
+        <Button
           type="button"
+          variant="secondary"
           onClick={() => setIsLogin(!isLogin)}
-          className="p-2 text-blue-500 underline"
+          fullWidth
+          className="mt-2"
         >
           {isLogin ? "Create an account" : "Log in with existing account"}
-        </button>
+        </Button>
       </form>
     </div>
   );
