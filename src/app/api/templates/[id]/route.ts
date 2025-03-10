@@ -22,7 +22,7 @@ async function getUserId() {
 // GET /api/templates/[id] - Get a specific template
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
     const userId = await getUserId();
@@ -30,7 +30,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     
-    const id = params.id;
+    const id = context.params.id;
     
     // Get the template with exercises and sets
     const template = await prisma.workoutTemplate.findUnique({
@@ -84,7 +84,7 @@ export async function GET(
 // PUT /api/templates/[id] - Update a specific template
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
     const userId = await getUserId();
@@ -92,7 +92,7 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     
-    const templateId = params.id;
+    const templateId = context.params.id;
     const body = await request.json();
     
     // Validate request body
@@ -220,7 +220,7 @@ export async function PUT(
 // DELETE /api/templates/[id] - Delete a specific template
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
     const userId = await getUserId();
@@ -228,7 +228,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     
-    const templateId = params.id;
+    const templateId = context.params.id;
     
     // Verify the template belongs to this user
     const existingTemplate = await prisma.workoutTemplate.findUnique({
