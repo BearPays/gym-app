@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 
@@ -19,18 +19,21 @@ async function getUserId() {
   }
 }
 
+interface RouteParams {
+  params: {
+    id: string;
+  };
+}
+
 // GET /api/templates/[id] - Get a specific template
-export async function GET(
-  request: Request,
-  context: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const userId = await getUserId();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     
-    const id = context.params.id;
+    const id = params.id;
     
     // Get the template with exercises and sets
     const template = await prisma.workoutTemplate.findUnique({
@@ -82,17 +85,14 @@ export async function GET(
 }
 
 // PUT /api/templates/[id] - Update a specific template
-export async function PUT(
-  request: Request,
-  context: { params: { id: string } }
-) {
+export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const userId = await getUserId();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     
-    const templateId = context.params.id;
+    const templateId = params.id;
     const body = await request.json();
     
     // Validate request body
@@ -218,17 +218,14 @@ export async function PUT(
 }
 
 // DELETE /api/templates/[id] - Delete a specific template
-export async function DELETE(
-  request: Request,
-  context: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const userId = await getUserId();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     
-    const templateId = context.params.id;
+    const templateId = params.id;
     
     // Verify the template belongs to this user
     const existingTemplate = await prisma.workoutTemplate.findUnique({

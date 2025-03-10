@@ -1,12 +1,16 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export async function GET(
-  request: Request,
-  context: { params: { id: string } }
-) {
+interface RouteParams {
+  params: {
+    id: string;
+  };
+}
+
+// Using Next.js's preferred typing for App Router API Routes
+export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const id = context.params.id;
+    const id = params.id;
     
     const exercise = await prisma.exercise.findUnique({
       where: { id },

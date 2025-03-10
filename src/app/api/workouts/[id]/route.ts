@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 
@@ -19,18 +19,21 @@ async function getUserId() {
   }
 }
 
+interface RouteParams {
+  params: {
+    id: string;
+  };
+}
+
 // GET /api/workouts/[id] - Get a specific workout
-export async function GET(
-  request: Request,
-  context: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const userId = await getUserId();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     
-    const id = context.params.id;
+    const id = params.id;
     
     // Get the workout with exercises and sets
     const workout = await prisma.workoutSession.findUnique({

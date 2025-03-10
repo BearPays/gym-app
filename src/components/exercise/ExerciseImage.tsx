@@ -35,7 +35,7 @@ const ExerciseImage: React.FC<ExerciseImageProps> = ({
 
   const imageProps = {
     src: imageUrl,
-    alt: exerciseName,
+    alt: exerciseName || "Exercise image", // Add alt text (fixes ESLint warning)
     fill: !width && !height,
     width: width,
     height: height,
@@ -46,7 +46,7 @@ const ExerciseImage: React.FC<ExerciseImageProps> = ({
 
   return (
     <div className={`relative ${!width && !height ? 'h-full w-full' : ''} ${className}`}>
-      <Image {...imageProps} />
+      <Image {...imageProps} alt={exerciseName || "Exercise image"} />
     </div>
   );
 };
