@@ -30,21 +30,12 @@ export default function Templates() {
           const data = await res.json();
           setTemplates(data);
         } else {
-          // For demo, we'll use mock data if the API fails
-          setTemplates([
-            { id: "1", name: "Upper Body Workout", createdAt: new Date().toISOString() },
-            { id: "2", name: "Lower Body Workout", createdAt: new Date().toISOString() },
-            { id: "3", name: "Full Body Workout", createdAt: new Date().toISOString() },
-          ]);
+          throw new Error("Failed to fetch templates");
         }
       } catch (error) {
         console.error("Failed to fetch templates:", error);
-        // For demo, use mock data
-        setTemplates([
-          { id: "1", name: "Upper Body Workout", createdAt: new Date().toISOString() },
-          { id: "2", name: "Lower Body Workout", createdAt: new Date().toISOString() },
-          { id: "3", name: "Full Body Workout", createdAt: new Date().toISOString() },
-        ]);
+        // For demo, use empty data to show the "no templates" message
+        setTemplates([]);
       } finally {
         setIsLoading(false);
       }
@@ -54,7 +45,7 @@ export default function Templates() {
   }, [isAuthenticated, router]);
 
   if (isLoading) {
-    return <div className="min-h-screen p-8">Loading...</div>;
+    return <div className="min-h-screen p-8">Loading templates...</div>;
   }
 
   return (
@@ -67,7 +58,12 @@ export default function Templates() {
       </div>
 
       {templates.length === 0 ? (
-        <p className="text-center py-10">No templates found. Create your first workout template!</p>
+        <div className="text-center py-10 border border-dashed border-gray-300 rounded-lg">
+          <p className="mb-4">No templates found. Create your first workout template!</p>
+          <Link href="/templates/create" className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
+            Create Template
+          </Link>
+        </div>
       ) : (
         <div className="grid gap-4">
           {templates.map((template) => (

@@ -24,9 +24,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
-      setIsAuthenticated(true);
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+        setIsAuthenticated(true);
+      } catch (e) {
+        console.error("Error parsing stored user:", e);
+      }
     }
   }, []);
   
@@ -34,12 +38,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(userData);
     setIsAuthenticated(true);
     localStorage.setItem('user', JSON.stringify(userData));
+    
+    // In a real app, this would set a proper HTTP-only cookie via the API
+    document.cookie = `user=${JSON.stringify(userData)}; path=/; max-age=${60*60*24*30}`;
   };
   
   const logout = () => {
     setUser(null);
     setIsAuthenticated(false);
     localStorage.removeItem('user');
+    
+    // Clear the cookie
+    document.cookie = "user=; path=/; max-age=0";
   };
   
   return (

@@ -1,4 +1,22 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { cookies } from "next/headers";
+
+// Helper function to get user ID from cookie/session
+async function getUserId() {
+  const userCookie = (await cookies()).get('user')?.value;
+  if (!userCookie) return null;
+  
+  try {
+    const userData = JSON.parse(userCookie);
+    const user = await prisma.user.findUnique({
+      where: { email: userData.email }
+    });
+    return user?.id;
+  } catch {
+    return null;
+  }
+}
 
 // GET /api/templates/[id] - Get a specific template
 export async function GET(
@@ -6,38 +24,53 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const userId = await getUserId();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    
     const id = params.id;
     
-    // In a real application, you would fetch the template from the database
-    // and verify the user has permission to access it
+    // Get the template with exercises and sets
+    const template = await prisma.workoutTemplate.findUnique({
+      where: { id },
+      include: {
+        exercises: {
+          include: {
+            exercise: true,
+            sets: {
+              orderBy: { order: 'asc' }
+            }
+          }
+        }
+      }
+    });
     
-    // Mock response for demo
-    const template = {
-      id,
-      name: id === "1" ? "Upper Body Workout" : "Full Body Workout",
-      createdAt: new Date().toISOString(),
-      exercises: [
-        {
-          id: "1",
-          name: "Bench Press",
-          sets: [
-            { id: "1", reps: 10, weight: 60 },
-            { id: "2", reps: 8, weight: 70 },
-            { id: "3", reps: 6, weight: 80 },
-          ],
-        },
-        {
-          id: "4",
-          name: "Pull Up",
-          sets: [
-            { id: "4", reps: 12, weight: 0 },
-            { id: "5", reps: 10, weight: 0 },
-          ],
-        },
-      ],
+    if (!template) {
+      return NextResponse.json({ error: "Template not found" }, { status: 404 });
+    }
+    
+    if (template.userId !== userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+    
+    // Transform the data to match the expected format
+    const formattedTemplate = {
+      id: template.id,
+      name: template.name,
+      createdAt: template.createdAt.toISOString(),
+      exercises: template.exercises.map(ex => ({
+        id: ex.exerciseId,
+        name: ex.exercise.name,
+        sets: ex.sets.map(set => ({
+          id: set.id,
+          reps: set.reps,
+          weight: set.weight
+        }))
+      }))
     };
     
-    return NextResponse.json(template);
+    return NextResponse.json(formattedTemplate);
   } catch (error) {
     console.error(`Error fetching template ${params.id}:`, error);
     return NextResponse.json(
@@ -53,6 +86,11 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const userId = await getUserId();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    
     const id = params.id;
     const body = await request.json();
     
@@ -64,16 +102,66 @@ export async function PUT(
       );
     }
     
-    // In a real application, you would update the template in the database
-    // and verify the user has permission to modify it
-    
-    // Mock response for demo
-    return NextResponse.json({
-      id,
-      name: body.name,
-      exercises: body.exercises,
-      createdAt: new Date().toISOString(),
+    // Update the template in the database
+    interface SetData {
+        reps: number;
+        weight: number;
+    }
+
+    interface ExerciseData {
+        id: string;
+        sets: SetData[];
+    }
+
+
+    const updatedTemplate = await prisma.workoutTemplate.update({
+        where: { id },
+        data: {
+            name: body.name,
+            exercises: {
+                deleteMany: {},
+                create: body.exercises.map((ex: ExerciseData) => ({
+                    exercise: {
+                        connect: { id: ex.id }
+                    },
+                    sets: {
+                        create: ex.sets.map((set: SetData) => ({
+                            reps: set.reps,
+                            weight: set.weight
+                        }))
+                    }
+                }))
+            }
+        },
+        include: {
+            exercises: {
+                include: {
+                    exercise: true,
+                    sets: {
+                        orderBy: { order: 'asc' }
+                    }
+                }
+            }
+        }
     });
+    
+    // Transform the data to match the expected format
+    const formattedTemplate = {
+      id: updatedTemplate.id,
+      name: updatedTemplate.name,
+      createdAt: updatedTemplate.createdAt.toISOString(),
+      exercises: updatedTemplate.exercises.map(ex => ({
+        id: ex.exerciseId,
+        name: ex.exercise.name,
+        sets: ex.sets.map(set => ({
+          id: set.id,
+          reps: set.reps,
+          weight: set.weight
+        }))
+      }))
+    };
+    
+    return NextResponse.json(formattedTemplate);
   } catch (error) {
     console.error(`Error updating template ${params.id}:`, error);
     return NextResponse.json(
@@ -89,8 +177,17 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    // In a real application, you would delete the template from the database
-    // and verify the user has permission to delete it
+    const userId = await getUserId();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    
+    const id = params.id;
+    
+    // Delete the template from the database
+    await prisma.workoutTemplate.delete({
+      where: { id }
+    });
     
     return NextResponse.json({ success: true });
   } catch (error) {

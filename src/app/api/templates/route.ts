@@ -1,17 +1,43 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { cookies } from "next/headers";
+
+// Helper function to get user ID from cookie/session
+async function getUserId() {
+  const userCookie = (await cookies()).get('user')?.value;
+  if (!userCookie) return null;
+  
+  try {
+    const userData = JSON.parse(userCookie);
+    // In a real app, you'd verify this with a proper session check
+    // For this demo, we'll find the user by email
+    const user = await prisma.user.findUnique({
+      where: { email: userData.email }
+    });
+    return user?.id;
+  } catch {
+    return null;
+  }
+}
 
 // GET /api/templates - Get all templates for the logged-in user
 export async function GET() {
   try {
-    // In a real application, you would fetch templates from the database
-    // and verify the user is authenticated
+    const userId = await getUserId();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     
-    // Mock response for demo
-    const templates = [
-      { id: "1", name: "Upper Body Workout", createdAt: new Date().toISOString() },
-      { id: "2", name: "Lower Body Workout", createdAt: new Date().toISOString() },
-      { id: "3", name: "Full Body Workout", createdAt: new Date().toISOString() },
-    ];
+    // Fetch templates for this specific user
+    const templates = await prisma.workoutTemplate.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        name: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' }
+    });
     
     return NextResponse.json(templates);
   } catch (error) {
@@ -23,6 +49,11 @@ export async function GET() {
 // POST /api/templates - Create a new workout template
 export async function POST(request: Request) {
   try {
+    const userId = await getUserId();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    
     const body = await request.json();
     
     // Validate request body
@@ -33,19 +64,47 @@ export async function POST(request: Request) {
       );
     }
     
-    // In a real application, you would save the template to the database
-    // and associate it with the authenticated user
+    // Create the template and related records in a transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Create the workout template
+      const workoutTemplate = await tx.workoutTemplate.create({
+        data: {
+          name: body.name,
+          userId: userId,
+        }
+      });
+      
+      // 2. Create exercises and sets
+      for (const exercise of body.exercises) {
+        if (!exercise.id) continue;
+        
+        const workoutTemplateExercise = await tx.workoutTemplateExercise.create({
+          data: {
+            workoutTemplateId: workoutTemplate.id,
+            exerciseId: exercise.id,
+          }
+        });
+        
+        // 3. Create sets for each exercise
+        if (Array.isArray(exercise.sets)) {
+          for (let i = 0; i < exercise.sets.length; i++) {
+            const set = exercise.sets[i];
+            await tx.workoutTemplateSet.create({
+              data: {
+                workoutTemplateExerciseId: workoutTemplateExercise.id,
+                order: i + 1,
+                reps: set.reps,
+                weight: set.weight,
+              }
+            });
+          }
+        }
+      }
+      
+      return workoutTemplate;
+    });
     
-    // Mock response for demo
-    return NextResponse.json(
-      { 
-        id: Date.now().toString(),
-        name: body.name,
-        exercises: body.exercises,
-        createdAt: new Date().toISOString()
-      },
-      { status: 201 }
-    );
+    return NextResponse.json(result, { status: 201 });
   } catch (error) {
     console.error("Error creating template:", error);
     return NextResponse.json(

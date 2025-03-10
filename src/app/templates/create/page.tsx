@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 type Exercise = {
   id: string;
   name: string;
+  category?: string;
   sets: Set[];
 };
 
@@ -16,11 +17,21 @@ type Set = {
   weight: number;
 };
 
+type DBExercise = {
+  id: string;
+  name: string;
+  category: string;
+  primaryMuscles: string[];
+  equipment: string | null;
+};
+
 export default function CreateTemplate() {
   const [templateName, setTemplateName] = useState("");
   const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [availableExercises, setAvailableExercises] = useState<{ id: string; name: string }[]>([]);
+  const [availableExercises, setAvailableExercises] = useState<DBExercise[]>([]);
   const [selectedExercise, setSelectedExercise] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const { isAuthenticated } = useAuth();
   const router = useRouter();
 
@@ -30,14 +41,28 @@ export default function CreateTemplate() {
       return;
     }
 
-    // Fetch available exercises from API, using mock data for now
-    setAvailableExercises([
-      { id: "1", name: "Bench Press" },
-      { id: "2", name: "Squats" },
-      { id: "3", name: "Deadlift" },
-      { id: "4", name: "Pull Up" },
-      { id: "5", name: "Push Up" },
-    ]);
+    const fetchExercises = async () => {
+      try {
+        const res = await fetch("/api/exercises");
+        if (res.ok) {
+          const data = await res.json();
+          setAvailableExercises(data);
+        } else {
+          throw new Error("Failed to fetch exercises");
+        }
+      } catch (error) {
+        console.error("Failed to fetch exercises:", error);
+        // Fallback to mock data
+        setAvailableExercises([
+          { id: "1", name: "Bench Press", category: "Strength", primaryMuscles: ["Chest"], equipment: "Barbell" },
+          { id: "2", name: "Squats", category: "Strength", primaryMuscles: ["Legs"], equipment: "Barbell" },
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchExercises();
   }, [isAuthenticated, router]);
 
   const handleAddExercise = () => {
@@ -49,6 +74,7 @@ export default function CreateTemplate() {
     const newExercise: Exercise = {
       id: exercise.id,
       name: exercise.name,
+      category: exercise.category,
       sets: []
     };
 
@@ -68,8 +94,17 @@ export default function CreateTemplate() {
 
   const handleSetChange = (exerciseIndex: number, setIndex: number, field: keyof Set, value: number) => {
     const updatedExercises = [...exercises];
-    updatedExercises[exerciseIndex].sets[setIndex][field] = value;
-    setExercises(updatedExercises);
+    
+    // Make sure the exercise and set exist
+    if (updatedExercises[exerciseIndex] && updatedExercises[exerciseIndex].sets[setIndex]) {
+      // Create a new set object with the updated field
+      updatedExercises[exerciseIndex].sets[setIndex] = {
+        ...updatedExercises[exerciseIndex].sets[setIndex],
+        [field]: value
+      };
+      
+      setExercises(updatedExercises);
+    }
   };
 
   const handleRemoveExercise = (index: number) => {
@@ -78,8 +113,10 @@ export default function CreateTemplate() {
 
   const handleRemoveSet = (exerciseIndex: number, setIndex: number) => {
     const updatedExercises = [...exercises];
-    updatedExercises[exerciseIndex].sets.splice(setIndex, 1);
-    setExercises(updatedExercises);
+    if (updatedExercises[exerciseIndex] && updatedExercises[exerciseIndex].sets) {
+      updatedExercises[exerciseIndex].sets.splice(setIndex, 1);
+      setExercises(updatedExercises);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -89,6 +126,15 @@ export default function CreateTemplate() {
       alert("Please provide a template name and add at least one exercise.");
       return;
     }
+
+    // Check if each exercise has at least one set
+    const hasEmptyExercises = exercises.some(ex => ex.sets.length === 0);
+    if (hasEmptyExercises) {
+      alert("Each exercise must have at least one set.");
+      return;
+    }
+
+    setIsSaving(true);
 
     const templateData = {
       name: templateName,
@@ -111,14 +157,20 @@ export default function CreateTemplate() {
       if (response.ok) {
         router.push("/templates");
       } else {
-        alert("Failed to create template.");
+        const data = await response.json();
+        alert(`Failed to create template: ${data.error || "Unknown error"}`);
       }
     } catch (error) {
       console.error("Error creating template:", error);
-      // For demo, just redirect back to templates
-      router.push("/templates");
+      alert("Failed to create template due to a network error.");
+    } finally {
+      setIsSaving(false);
     }
   };
+
+  if (isLoading) {
+    return <div className="min-h-screen p-8">Loading exercises...</div>;
+  }
 
   return (
     <div className="min-h-screen p-8">
@@ -151,7 +203,7 @@ export default function CreateTemplate() {
               <option value="">Select Exercise</option>
               {availableExercises.map((exercise) => (
                 <option key={exercise.id} value={exercise.id}>
-                  {exercise.name}
+                  {exercise.name} ({exercise.category})
                 </option>
               ))}
             </select>
@@ -159,6 +211,7 @@ export default function CreateTemplate() {
               type="button"
               onClick={handleAddExercise}
               className="bg-blue-600 text-white px-4 py-2 rounded"
+              disabled={!selectedExercise}
             >
               Add Exercise
             </button>
@@ -186,7 +239,7 @@ export default function CreateTemplate() {
                   {/* Sets */}
                   <div className="space-y-3">
                     {exercise.sets.map((set, setIndex) => (
-                      <div key={setIndex} className="flex gap-3 items-center">
+                      <div key={set.id} className="flex gap-3 items-center">
                         <span className="w-10">#{setIndex + 1}</span>
                         <div>
                           <label className="text-xs block">Reps</label>
@@ -194,7 +247,12 @@ export default function CreateTemplate() {
                             type="number"
                             min="1"
                             value={set.reps}
-                            onChange={(e) => handleSetChange(exerciseIndex, setIndex, "reps", parseInt(e.target.value))}
+                            onChange={(e) => handleSetChange(
+                              exerciseIndex, 
+                              setIndex, 
+                              "reps", 
+                              e.target.value ? parseInt(e.target.value) : 0
+                            )}
                             className="w-20 p-1 border border-gray-300 rounded"
                           />
                         </div>
@@ -205,7 +263,12 @@ export default function CreateTemplate() {
                             min="0"
                             step="0.5"
                             value={set.weight}
-                            onChange={(e) => handleSetChange(exerciseIndex, setIndex, "weight", parseFloat(e.target.value))}
+                            onChange={(e) => handleSetChange(
+                              exerciseIndex, 
+                              setIndex, 
+                              "weight", 
+                              e.target.value ? parseFloat(e.target.value) : 0
+                            )}
                             className="w-20 p-1 border border-gray-300 rounded"
                           />
                         </div>
@@ -236,9 +299,14 @@ export default function CreateTemplate() {
         <div className="mt-8">
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white p-3 rounded font-medium hover:bg-blue-700"
+            disabled={isSaving}
+            className={`w-full p-3 rounded font-medium ${
+              isSaving 
+                ? "bg-gray-400 text-white cursor-not-allowed" 
+                : "bg-blue-600 text-white hover:bg-blue-700"
+            }`}
           >
-            Save Template
+            {isSaving ? "Saving..." : "Save Template"}
           </button>
         </div>
       </form>
