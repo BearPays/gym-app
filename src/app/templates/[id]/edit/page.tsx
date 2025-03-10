@@ -101,9 +101,9 @@ export default function EditTemplate({ params: promisedParams }: { params: Promi
   const handleAddSet = (exerciseIndex: number) => {
     const updatedExercises = [...exercises];
     updatedExercises[exerciseIndex].sets.push({
-      id: Date.now().toString(),
+      id: crypto.randomUUID(), // Use a unique ID
       reps: 10,
-      weight: 20
+      weight: 20,
     });
     setExercises(updatedExercises);
   };

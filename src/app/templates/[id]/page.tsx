@@ -142,8 +142,8 @@ export default function TemplateDetailPage({ params: promisedParams }: { params:
       </div>
 
       <div className="space-y-6 mt-8">
-        {template.exercises.map((exercise) => (
-          <div key={exercise.id} className="border border-gray-300 rounded p-4">
+        {template.exercises.map((exercise, index) => (
+          <div key={`${exercise.id}-${index}`} className="border border-gray-300 rounded p-4">
             <div className="flex items-center mb-3">
               <h3 className="font-medium">{exercise.name}</h3>
               <ExerciseInfoButton exerciseId={exercise.id} className="ml-2" />

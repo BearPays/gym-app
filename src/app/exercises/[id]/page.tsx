@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import Loading from "@/components/ui/Loading";
 import ExerciseImage from "@/components/exercise/ExerciseImage";
@@ -20,15 +20,18 @@ type Exercise = {
   image?: string;
 };
 
-export default function ExerciseDetailPage({ params }: { params: { id: string } }) {
+export default function ExerciseDetailPage() {
+  const { id } = useParams();
   const [exercise, setExercise] = useState<Exercise | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
+    if (!id) return;
+
     const fetchExercise = async () => {
       try {
-        const res = await fetch(`/api/exercises/${params.id}`);
+        const res = await fetch(`/api/exercises/${id}`);
         if (res.ok) {
           const data = await res.json();
           setExercise(data);
@@ -39,7 +42,7 @@ export default function ExerciseDetailPage({ params }: { params: { id: string } 
         console.error("Failed to fetch exercise:", error);
         // Use placeholder data if API fails
         setExercise({
-          id: params.id,
+          id: Array.isArray(id) ? id[0] : id,
           name: "Bench Press",
           category: "Strength",
           force: "Push",
@@ -63,7 +66,7 @@ export default function ExerciseDetailPage({ params }: { params: { id: string } 
     };
 
     fetchExercise();
-  }, [params.id]);
+  }, [id]);
 
   const goBack = () => {
     router.back();

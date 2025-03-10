@@ -1,8 +1,7 @@
 "use client";
-
 import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import Loading from "@/components/ui/Loading";
 import Link from "next/link";
@@ -26,7 +25,9 @@ type WorkoutSession = {
   exercises: WorkoutExercise[];
 };
 
-export default function WorkoutDetail({ params }: { params: { id: string } }) {
+export default function WorkoutDetail() {
+  const params = useParams();
+  const id = params.id as string; // cast id to string since we know it exists in this route
   const [workout, setWorkout] = useState<WorkoutSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { isAuthenticated } = useAuth();
@@ -42,14 +43,14 @@ export default function WorkoutDetail({ params }: { params: { id: string } }) {
       try {
         // In a real app, you'd fetch this data from the API
         // For this demo, we'll simulate the API response
-        const res = await fetch(`/api/workouts/${params.id}`);
+        const res = await fetch(`/api/workouts/${id}`);
         if (res.ok) {
           const data = await res.json();
           setWorkout(data);
         } else {
           // For demo purposes, create mock data
           setWorkout({
-            id: params.id,
+            id: id,
             templateName: "Sample Workout",
             startTime: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
             endTime: new Date().toISOString(),
@@ -82,7 +83,7 @@ export default function WorkoutDetail({ params }: { params: { id: string } }) {
     };
 
     fetchWorkout();
-  }, [isAuthenticated, params.id, router]);
+  }, [id, isAuthenticated, router]);
 
   if (isLoading) {
     return <Loading text="Loading workout details..." />;
