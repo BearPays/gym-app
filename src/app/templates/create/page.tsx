@@ -5,9 +5,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
-import Select from "@/components/ui/Select";
 import Loading from "@/components/ui/Loading";
 import ExerciseForm from "@/components/exercise/ExerciseForm";
+import ExercisePicker, { ExercisePickerOption } from "@/components/exercise/ExercisePicker";
 
 type Exercise = {
   id: string;
@@ -22,60 +22,30 @@ type Set = {
   weight: number;
 };
 
-type DBExercise = {
-  id: string;
-  name: string;
-  category: string;
-  primaryMuscles: string[];
-  equipment: string | null;
-};
-
 export default function CreateTemplate() {
   const [templateName, setTemplateName] = useState("");
   const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [availableExercises, setAvailableExercises] = useState<DBExercise[]>([]);
-  const [selectedExercise, setSelectedExercise] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const { isAuthenticated } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    // Set loading state while checking authentication
+    setIsLoading(true);
+    if (isAuthenticated !== null) {
+      setIsLoading(false);
+    }
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (!isAuthenticated) {
       router.push("/login");
       return;
     }
-
-    const fetchExercises = async () => {
-      try {
-        const res = await fetch("/api/exercises");
-        if (res.ok) {
-          const data = await res.json();
-          setAvailableExercises(data);
-        } else {
-          throw new Error("Failed to fetch exercises");
-        }
-      } catch (error) {
-        console.error("Failed to fetch exercises:", error);
-        // Fallback to mock data
-        setAvailableExercises([
-          { id: "1", name: "Bench Press", category: "Strength", primaryMuscles: ["Chest"], equipment: "Barbell" },
-          { id: "2", name: "Squats", category: "Strength", primaryMuscles: ["Legs"], equipment: "Barbell" },
-        ]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchExercises();
   }, [isAuthenticated, router]);
 
-  const handleAddExercise = () => {
-    if (!selectedExercise) return;
-
-    const exercise = availableExercises.find(ex => ex.id === selectedExercise);
-    if (!exercise) return;
-
+  const handleAddExercise = (exercise: ExercisePickerOption) => {
     const newExercise: Exercise = {
       id: exercise.id,
       name: exercise.name,
@@ -84,7 +54,6 @@ export default function CreateTemplate() {
     };
 
     setExercises([...exercises, newExercise]);
-    setSelectedExercise("");
   };
 
   const handleAddSet = (exerciseIndex: number) => {
@@ -175,11 +144,6 @@ export default function CreateTemplate() {
     return <Loading text="Loading exercises..." />;
   }
 
-  const exerciseOptions = availableExercises.map(exercise => ({
-    value: exercise.id,
-    label: `${exercise.name} ${exercise.category ? `(${exercise.category})` : ''}`
-  }));
-
   return (
     <div className="min-h-screen p-8">
       <h1 className="text-2xl font-bold mb-6">Create Workout Template</h1>
@@ -195,24 +159,12 @@ export default function CreateTemplate() {
         />
 
         <div className="mb-6">
-          <h2 className="text-xl mb-4">Exercises</h2>
+          <h2 className="text-xl mb-4">Add Exercises</h2>
           
-          <div className="flex gap-2 mb-4">
-            <Select
-              id="exerciseSelect"
-              value={selectedExercise}
-              onChange={(e) => setSelectedExercise(e.target.value)}
-              options={exerciseOptions}
-              placeholder="Select Exercise"
-              className="flex-1"
-            />
-            <Button
-              onClick={handleAddExercise}
-              disabled={!selectedExercise}
-            >
-              Add Exercise
-            </Button>
-          </div>
+          <ExercisePicker 
+            onSelectExercise={handleAddExercise}
+            className="mb-6"
+          />
 
           {exercises.length === 0 ? (
             <p className="text-center py-4 border border-dashed border-gray-300 rounded">

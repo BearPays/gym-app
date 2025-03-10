@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import Loading from "@/components/ui/Loading";
-import ExerciseItem from "@/components/exercise/ExerciseItem";
+import ExerciseInfoButton from "@/components/exercise/ExerciseInfoButton";
 
 type Set = {
   id: string;
@@ -128,11 +128,31 @@ export default function TemplateDetail({ params }: { params: { id: string } }) {
 
       <div className="space-y-6 mt-8">
         {template.exercises.map((exercise) => (
-          <ExerciseItem
-            key={exercise.id}
-            name={exercise.name}
-            sets={exercise.sets}
-          />
+          <div key={exercise.id} className="border border-gray-300 rounded p-4">
+            <div className="flex items-center mb-3">
+              <h3 className="font-medium">{exercise.name}</h3>
+              <ExerciseInfoButton exerciseId={exercise.id} className="ml-2" />
+            </div>
+
+            <table className="w-full">
+              <thead>
+                <tr className="text-left text-sm">
+                  <th className="pb-2 w-16">Set</th>
+                  <th className="pb-2">Reps</th>
+                  <th className="pb-2">Weight</th>
+                </tr>
+              </thead>
+              <tbody>
+                {exercise.sets.map((set, index) => (
+                  <tr key={set.id}>
+                    <td className="py-2">{index + 1}</td>
+                    <td className="py-2">{set.reps}</td>
+                    <td className="py-2">{set.weight} kg</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ))}
       </div>
     </div>

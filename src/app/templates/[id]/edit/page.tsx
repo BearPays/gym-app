@@ -5,9 +5,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
-import Select from "@/components/ui/Select";
 import Loading from "@/components/ui/Loading";
 import ExerciseForm from "@/components/exercise/ExerciseForm";
+import ExercisePicker, { ExercisePickerOption } from "@/components/exercise/ExercisePicker";
 
 type Exercise = {
   id: string;
@@ -22,14 +22,6 @@ type Set = {
   weight: number;
 };
 
-type DBExercise = {
-  id: string;
-  name: string;
-  category: string;
-  primaryMuscles: string[];
-  equipment: string | null;
-};
-
 type Template = {
   id: string;
   name: string;
@@ -41,8 +33,6 @@ export default function EditTemplate({ params }: { params: { id: string } }) {
   const [template, setTemplate] = useState<Template | null>(null);
   const [templateName, setTemplateName] = useState("");
   const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [availableExercises, setAvailableExercises] = useState<DBExercise[]>([]);
-  const [selectedExercise, setSelectedExercise] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const { isAuthenticated } = useAuth();
@@ -67,12 +57,13 @@ export default function EditTemplate({ params }: { params: { id: string } }) {
         setExercises(templateData.exercises);
         
         // Fetch available exercises
+        // Fetch available exercises
         const exercisesRes = await fetch("/api/exercises");
         if (!exercisesRes.ok) {
           throw new Error("Failed to fetch exercises");
         }
-        const exercisesData = await exercisesRes.json();
-        setAvailableExercises(exercisesData);
+        // We don't need to store these exercises as the ExercisePicker 
+        // component fetches them on its own
       } catch (error) {
         console.error("Failed to fetch data:", error);
         alert("Failed to load template data. Redirecting back to templates.");
@@ -85,12 +76,7 @@ export default function EditTemplate({ params }: { params: { id: string } }) {
     fetchData();
   }, [isAuthenticated, router, params.id]);
 
-  const handleAddExercise = () => {
-    if (!selectedExercise) return;
-
-    const exercise = availableExercises.find(ex => ex.id === selectedExercise);
-    if (!exercise) return;
-
+  const handleAddExercise = (exercise: ExercisePickerOption) => {
     const newExercise: Exercise = {
       id: exercise.id,
       name: exercise.name,
@@ -99,7 +85,6 @@ export default function EditTemplate({ params }: { params: { id: string } }) {
     };
 
     setExercises([...exercises, newExercise]);
-    setSelectedExercise("");
   };
 
   const handleAddSet = (exerciseIndex: number) => {
@@ -198,11 +183,6 @@ export default function EditTemplate({ params }: { params: { id: string } }) {
     return <div className="min-h-screen p-8">Template not found</div>;
   }
 
-  const exerciseOptions = availableExercises.map(exercise => ({
-    value: exercise.id,
-    label: `${exercise.name} ${exercise.category ? `(${exercise.category})` : ''}`
-  }));
-
   return (
     <div className="min-h-screen p-8">
       <h1 className="text-2xl font-bold mb-6">Edit Workout Template</h1>
@@ -220,22 +200,10 @@ export default function EditTemplate({ params }: { params: { id: string } }) {
         <div className="mb-6">
           <h2 className="text-xl mb-4">Exercises</h2>
           
-          <div className="flex gap-2 mb-4">
-            <Select
-              id="exerciseSelect"
-              value={selectedExercise}
-              onChange={(e) => setSelectedExercise(e.target.value)}
-              options={exerciseOptions}
-              placeholder="Select Exercise"
-              className="flex-1"
-            />
-            <Button
-              onClick={handleAddExercise}
-              disabled={!selectedExercise}
-            >
-              Add Exercise
-            </Button>
-          </div>
+          <ExercisePicker 
+            onSelectExercise={handleAddExercise}
+            className="mb-6"
+          />
 
           {exercises.length === 0 ? (
             <p className="text-center py-4 border border-dashed border-gray-300 rounded">
@@ -263,7 +231,6 @@ export default function EditTemplate({ params }: { params: { id: string } }) {
           <Button
             type="submit"
             disabled={isSaving}
-            fullWidth
             className="flex-1"
           >
             {isSaving ? "Saving..." : "Update Template"}
@@ -272,7 +239,6 @@ export default function EditTemplate({ params }: { params: { id: string } }) {
             type="button"
             variant="secondary"
             onClick={handleCancel}
-            fullWidth
             className="flex-1"
           >
             Cancel

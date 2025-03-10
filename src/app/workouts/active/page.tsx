@@ -5,23 +5,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useWorkout } from "@/contexts/WorkoutContext";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
-import Select from "@/components/ui/Select";
 import Loading from "@/components/ui/Loading";
 import WorkoutExerciseItem from "@/components/workout/WorkoutExerciseItem";
+import ExercisePicker, { ExercisePickerOption } from "@/components/exercise/ExercisePicker";
 import Link from "next/link";
 
-type DBExercise = {
-  id: string;
-  name: string;
-  category: string;
-};
-
 export default function ActiveWorkout() {
-  const [availableExercises, setAvailableExercises] = useState<DBExercise[]>([]);
-  const [selectedExercise, setSelectedExercise] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isFinishing, setIsFinishing] = useState(false);
   const [workoutDuration, setWorkoutDuration] = useState("00:00:00");
+  const [availableExercises, setAvailableExercises] = useState<ExercisePickerOption[]>([]);
   
   const { activeWorkout, addExercise, removeExercise, addSet, removeSet, updateSet, endWorkout, isSaving } = useWorkout();
   const { isAuthenticated } = useAuth();
@@ -49,6 +42,7 @@ export default function ActiveWorkout() {
         }
       } catch (error) {
         console.error("Failed to fetch exercises:", error);
+        setAvailableExercises([]); // Set empty array on error
       } finally {
         setIsLoading(false);
       }
@@ -79,14 +73,8 @@ export default function ActiveWorkout() {
     return () => clearInterval(interval);
   }, [activeWorkout]);
 
-  const handleAddExercise = () => {
-    if (!selectedExercise || !activeWorkout) return;
-    
-    const exercise = availableExercises.find(ex => ex.id === selectedExercise);
-    if (!exercise) return;
-    
+  const handleAddExercise = (exercise: ExercisePickerOption) => {
     addExercise(exercise.id, exercise.name);
-    setSelectedExercise("");
   };
 
   const handleFinishWorkout = async () => {
@@ -123,11 +111,6 @@ export default function ActiveWorkout() {
       </div>
     );
   }
-
-  const exerciseOptions = availableExercises.map(exercise => ({
-    value: exercise.id,
-    label: `${exercise.name} ${exercise.category ? `(${exercise.category})` : ''}`
-  }));
 
   const totalSets = activeWorkout.exercises.reduce(
     (sum, exercise) => sum + exercise.sets.length, 0
@@ -176,22 +159,12 @@ export default function ActiveWorkout() {
           {activeWorkout.exercises.length} exercise{activeWorkout.exercises.length !== 1 ? 's' : ''} added
         </p>
         
-        <div className="flex gap-2 mb-6">
-          <Select
-            id="exerciseSelect"
-            value={selectedExercise}
-            onChange={(e) => setSelectedExercise(e.target.value)}
-            options={exerciseOptions}
-            placeholder="Select Exercise"
-            className="flex-1"
-          />
-          <Button
-            onClick={handleAddExercise}
-            disabled={!selectedExercise}
-          >
-            Add Exercise
-          </Button>
-        </div>
+        <ExercisePicker
+          providedExercises={availableExercises}
+          onSelectExercise={handleAddExercise}
+          buttonText="Add to Workout"
+          className="mb-6"
+        />
         
         {activeWorkout.exercises.length === 0 ? (
           <div className="text-center py-10 border border-dashed border-gray-300 rounded-lg">
