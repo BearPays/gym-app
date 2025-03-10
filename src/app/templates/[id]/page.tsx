@@ -27,6 +27,7 @@ type WorkoutTemplate = {
 export default function TemplateDetail({ params }: { params: { id: string } }) {
   const [template, setTemplate] = useState<WorkoutTemplate | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { isAuthenticated } = useAuth();
   const router = useRouter();
 
@@ -110,6 +111,31 @@ export default function TemplateDetail({ params }: { params: { id: string } }) {
     router.push("/workouts");
   };
 
+  const handleDeleteTemplate = async () => {
+    if (!confirm("Are you sure you want to delete this template? This action cannot be undone.")) {
+      return;
+    }
+
+    setIsDeleting(true);
+    
+    try {
+      const response = await fetch(`/api/templates/${params.id}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        router.push("/templates");
+      } else {
+        alert("Failed to delete template");
+      }
+    } catch (error) {
+      console.error("Error deleting template:", error);
+      alert("Failed to delete template due to a network error.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (isLoading) {
     return <div className="min-h-screen p-8">Loading...</div>;
   }
@@ -131,6 +157,17 @@ export default function TemplateDetail({ params }: { params: { id: string } }) {
             className="bg-green-600 text-white px-4 py-2 rounded"
           >
             Start Workout
+          </button>
+          <button 
+            onClick={handleDeleteTemplate} 
+            disabled={isDeleting}
+            className={`px-4 py-2 rounded ${
+              isDeleting 
+                ? "bg-gray-400 text-white cursor-not-allowed" 
+                : "bg-red-600 text-white"
+            }`}
+          >
+            {isDeleting ? "Deleting..." : "Delete"}
           </button>
         </div>
       </div>

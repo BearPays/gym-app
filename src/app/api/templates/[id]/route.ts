@@ -4,7 +4,8 @@ import { cookies } from "next/headers";
 
 // Helper function to get user ID from cookie/session
 async function getUserId() {
-  const userCookie = (await cookies()).get('user')?.value;
+  const userCookies = await cookies();
+  const userCookie = userCookies.get('user')?.value;
   if (!userCookie) return null;
   
   try {
@@ -72,7 +73,7 @@ export async function GET(
     
     return NextResponse.json(formattedTemplate);
   } catch (error) {
-    console.error(`Error fetching template ${params.id}:`, error);
+    console.error(`Error fetching template:`, error);
     return NextResponse.json(
       { error: "Failed to fetch template" },
       { status: 500 }
@@ -91,7 +92,7 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     
-    const id = params.id;
+    const templateId = params.id;
     const body = await request.json();
     
     // Validate request body
@@ -102,50 +103,95 @@ export async function PUT(
       );
     }
     
-    // Update the template in the database
-    interface SetData {
-        reps: number;
-        weight: number;
+    // Verify the template belongs to this user
+    const existingTemplate = await prisma.workoutTemplate.findUnique({
+      where: { id: templateId },
+      select: { userId: true }
+    });
+
+    if (!existingTemplate) {
+      return NextResponse.json({ error: "Template not found" }, { status: 404 });
     }
-
-    interface ExerciseData {
-        id: string;
-        sets: SetData[];
+    
+    if (existingTemplate.userId !== userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
-
-
-    const updatedTemplate = await prisma.workoutTemplate.update({
-        where: { id },
-        data: {
-            name: body.name,
-            exercises: {
-                deleteMany: {},
-                create: body.exercises.map((ex: ExerciseData) => ({
-                    exercise: {
-                        connect: { id: ex.id }
-                    },
-                    sets: {
-                        create: ex.sets.map((set: SetData) => ({
-                            reps: set.reps,
-                            weight: set.weight
-                        }))
-                    }
-                }))
-            }
-        },
-        include: {
-            exercises: {
-                include: {
-                    exercise: true,
-                    sets: {
-                        orderBy: { order: 'asc' }
-                    }
-                }
-            }
-        }
+    
+    // Fetch exercises separately
+    const existingExercises = await prisma.workoutTemplateExercise.findMany({
+      where: { workoutTemplateId: templateId },
+      include: {
+        sets: true
+      }
     });
     
-    // Transform the data to match the expected format
+    // Update in a transaction to ensure consistency
+    await prisma.$transaction(async (tx) => {
+      // Update template name
+      await tx.workoutTemplate.update({
+        where: { id: templateId },
+        data: { name: body.name }
+      });
+      
+      // First, delete all sets for each exercise
+      for (const exercise of existingExercises) {
+        await tx.workoutTemplateSet.deleteMany({
+          where: { workoutTemplateExerciseId: exercise.id }
+        });
+      }
+      
+      // Then delete all exercises
+      await tx.workoutTemplateExercise.deleteMany({
+        where: { workoutTemplateId: templateId }
+      });
+      
+      // Create new exercises and sets
+      for (const exercise of body.exercises) {
+        if (!exercise.id) continue;
+        
+        const workoutTemplateExercise = await tx.workoutTemplateExercise.create({
+          data: {
+            workoutTemplateId: templateId,
+            exerciseId: exercise.id,
+          }
+        });
+        
+        if (Array.isArray(exercise.sets)) {
+          for (let i = 0; i < exercise.sets.length; i++) {
+            const set = exercise.sets[i];
+            await tx.workoutTemplateSet.create({
+              data: {
+                workoutTemplateExerciseId: workoutTemplateExercise.id,
+                order: i + 1,
+                reps: set.reps,
+                weight: set.weight,
+              }
+            });
+          }
+        }
+      }
+    });
+    
+    // Get the updated template with all its relations
+    const updatedTemplate = await prisma.workoutTemplate.findUnique({
+      where: { id: templateId },
+      include: {
+        exercises: {
+          include: {
+            exercise: true,
+            sets: {
+              orderBy: { order: 'asc' }
+            }
+          }
+        }
+      }
+    });
+    
+    if (!updatedTemplate) {
+      return NextResponse.json({ error: "Failed to retrieve updated template" }, { status: 500 });
+    }
+    
+    // Format the response
     const formattedTemplate = {
       id: updatedTemplate.id,
       name: updatedTemplate.name,
@@ -163,7 +209,7 @@ export async function PUT(
     
     return NextResponse.json(formattedTemplate);
   } catch (error) {
-    console.error(`Error updating template ${params.id}:`, error);
+    console.error(`Error updating template:`, error);
     return NextResponse.json(
       { error: "Failed to update template" },
       { status: 500 }
@@ -182,16 +228,50 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     
-    const id = params.id;
+    const templateId = params.id;
     
-    // Delete the template from the database
-    await prisma.workoutTemplate.delete({
-      where: { id }
+    // Verify the template belongs to this user
+    const existingTemplate = await prisma.workoutTemplate.findUnique({
+      where: { id: templateId },
+      select: { userId: true }
+    });
+    
+    if (!existingTemplate) {
+      return NextResponse.json({ error: "Template not found" }, { status: 404 });
+    }
+    
+    if (existingTemplate.userId !== userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+    
+    // Delete template and its related records
+    await prisma.$transaction(async (tx) => {
+      // First find all exercises for this template
+      const exercises = await tx.workoutTemplateExercise.findMany({
+        where: { workoutTemplateId: templateId }
+      });
+      
+      // Delete sets for each exercise
+      for (const exercise of exercises) {
+        await tx.workoutTemplateSet.deleteMany({
+          where: { workoutTemplateExerciseId: exercise.id }
+        });
+      }
+      
+      // Delete exercises
+      await tx.workoutTemplateExercise.deleteMany({
+        where: { workoutTemplateId: templateId }
+      });
+      
+      // Finally delete the template
+      await tx.workoutTemplate.delete({
+        where: { id: templateId }
+      });
     });
     
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error(`Error deleting template ${params.id}:`, error);
+    console.error(`Error deleting template:`, error);
     return NextResponse.json(
       { error: "Failed to delete template" },
       { status: 500 }
