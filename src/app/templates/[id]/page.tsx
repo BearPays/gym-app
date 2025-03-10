@@ -27,14 +27,25 @@ type WorkoutTemplate = {
   exercises: Exercise[];
 };
 
-export default function TemplateDetail({ params }: { params: { id: string } }) {
+export default function TemplateDetailPage({ params: promisedParams }: { params: Promise<{ id: string }> }) {
   const [template, setTemplate] = useState<WorkoutTemplate | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const { isAuthenticated } = useAuth();
   const router = useRouter();
+  const [params, setParams] = useState<{ id: string } | null>(null);
 
   useEffect(() => {
+    promisedParams.then((unwrappedParams) => {
+      setParams(unwrappedParams);
+    });
+  }, [promisedParams]);
+
+  useEffect(() => {
+    // Wait until params is set
+    if (params === null) return;
+
+    // Then check authentication
     if (!isAuthenticated) {
       router.push("/login");
       return;
@@ -57,7 +68,7 @@ export default function TemplateDetail({ params }: { params: { id: string } }) {
     };
 
     fetchTemplate();
-  }, [isAuthenticated, params.id, router]);
+  }, [params, isAuthenticated, router]);
 
   const handleStartWorkout = () => {
     router.push("/workouts");
@@ -65,6 +76,10 @@ export default function TemplateDetail({ params }: { params: { id: string } }) {
 
   const handleDeleteTemplate = async () => {
     if (!confirm("Are you sure you want to delete this template? This action cannot be undone.")) {
+      return;
+    }
+
+    if (!params) {
       return;
     }
 
@@ -101,7 +116,7 @@ export default function TemplateDetail({ params }: { params: { id: string } }) {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">{template.name}</h1>
         <div className="flex gap-2">
-          <Link href={`/templates/${params.id}/edit`}>
+          <Link href={`/templates/${params?.id}/edit`}>
             <Button>Edit</Button>
           </Link>
           <Button 

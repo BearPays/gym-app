@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
@@ -30,7 +30,15 @@ type Template = {
   exercises: Exercise[];
 };
 
-export default function EditTemplate({ params }: { params: { id: string } }) {
+export default function EditTemplate({ params: promisedParams }: { params: Promise<{ id: string }> }) {
+  const [params, setParams] = React.useState<{ id: string } | null>(null);
+
+  React.useEffect(() => {
+    promisedParams.then((result) => {
+      setParams(result);
+    });
+  }, [promisedParams]);
+
   const [template, setTemplate] = useState<Template | null>(null);
   const [templateName, setTemplateName] = useState("");
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -41,6 +49,8 @@ export default function EditTemplate({ params }: { params: { id: string } }) {
   const router = useRouter();
 
   useEffect(() => {
+    if (!params) return;
+
     if (!isAuthenticated) {
       router.push("/login");
       return;
@@ -75,7 +85,7 @@ export default function EditTemplate({ params }: { params: { id: string } }) {
     };
 
     fetchData();
-  }, [isAuthenticated, router, params.id]);
+  }, [isAuthenticated, router, params]);
 
   const handleAddExercise = (exercise: ExercisePickerOption) => {
     const newExercise: Exercise = {
@@ -126,6 +136,10 @@ export default function EditTemplate({ params }: { params: { id: string } }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!params) {
+      return;
+    }
+    
     if (!templateName || exercises.length === 0) {
       alert("Please provide a template name and add at least one exercise.");
       return;
@@ -167,13 +181,17 @@ export default function EditTemplate({ params }: { params: { id: string } }) {
     } catch (error) {
       console.error("Error updating template:", error);
       alert("Failed to update template due to a network error.");
-    } finally {
-      setIsSaving(false);
-    }
+  } finally {
+    setIsSaving(false);
+  }
   };
-
+  
   const handleCancel = () => {
-    router.push(`/templates/${params.id}`);
+    if (params) {
+      router.push(`/templates/${params.id}`);
+    } else {
+      router.push('/templates');
+    }
   };
 
   if (isLoading) {

@@ -20,7 +20,7 @@ type Exercise = {
   image?: string;
 };
 
-export default function ExerciseDetails({ params }: { params: { id: string } }) {
+export default function ExerciseDetailPage({ params }: { params: { id: string } }) {
   const [exercise, setExercise] = useState<Exercise | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();

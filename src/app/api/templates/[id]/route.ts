@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { cookies } from "next/headers";
+import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { prisma } from '@/lib/prisma';
 
 // Helper function to get user ID from cookie/session
 async function getUserId() {
@@ -19,21 +19,17 @@ async function getUserId() {
   }
 }
 
-interface RouteParams {
-  params: {
-    id: string;
-  };
-}
-
 // GET /api/templates/[id] - Get a specific template
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const userId = await getUserId();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     
-    const id = params.id;
+    const url = new URL(request.url);
+    const segments = url.pathname.split('/');
+    const id = segments[segments.length - 1];
     
     // Get the template with exercises and sets
     const template = await prisma.workoutTemplate.findUnique({
@@ -85,14 +81,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 }
 
 // PUT /api/templates/[id] - Update a specific template
-export async function PUT(request: NextRequest, { params }: RouteParams) {
+export async function PUT(request: NextRequest): Promise<NextResponse> {
   try {
     const userId = await getUserId();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     
-    const templateId = params.id;
+    const url = new URL(request.url);
+    const segments = url.pathname.split('/');
+    const templateId = segments[segments.length - 1];
     const body = await request.json();
     
     // Validate request body
@@ -218,14 +216,16 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 }
 
 // DELETE /api/templates/[id] - Delete a specific template
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+export async function DELETE(request: NextRequest): Promise<NextResponse> {
   try {
     const userId = await getUserId();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     
-    const templateId = params.id;
+    const url = new URL(request.url);
+    const segments = url.pathname.split('/');
+    const templateId = segments[segments.length - 1];
     
     // Verify the template belongs to this user
     const existingTemplate = await prisma.workoutTemplate.findUnique({

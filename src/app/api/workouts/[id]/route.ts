@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { cookies } from "next/headers";
+import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { prisma } from '@/lib/prisma';
 
 // Helper function to get user ID from cookie/session
 async function getUserId() {
@@ -19,21 +19,17 @@ async function getUserId() {
   }
 }
 
-interface RouteParams {
-  params: {
-    id: string;
-  };
-}
-
-// GET /api/workouts/[id] - Get a specific workout
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const userId = await getUserId();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     
-    const id = params.id;
+    // Parse the ID from the URL path
+    const url = new URL(request.url);
+    const segments = url.pathname.split('/');
+    const id = segments[segments.length - 1];
     
     // Get the workout with exercises and sets
     const workout = await prisma.workoutSession.findUnique({
