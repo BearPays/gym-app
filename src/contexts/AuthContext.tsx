@@ -12,6 +12,7 @@ type AuthContextType = {
   login: (user: User) => void;
   logout: () => void;
   isAuthenticated: boolean;
+  isInitialized: boolean; // new context value
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -19,6 +20,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   
   // Load user from localStorage on initial render
   useEffect(() => {
@@ -32,6 +34,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error("Error parsing stored user:", e);
       }
     }
+    setIsInitialized(true);
   }, []);
   
   const login = (userData: User) => {
@@ -53,7 +56,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
   
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      login, 
+      logout, 
+      isAuthenticated,
+      isInitialized // new context value
+    }}>
       {children}
     </AuthContext.Provider>
   );

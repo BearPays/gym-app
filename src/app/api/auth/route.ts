@@ -78,6 +78,37 @@ export async function POST(request: Request) {
           name: user.name || email.split('@')[0]
         }
       }, { status: 201 });
+    } else if (body.action === 'guestLogin') {
+      const guestEmail = 'guest@guest.com';
+      const guestPassword = 'guest';
+    
+      let guestUser = await prisma.user.findUnique({
+        where: { email: guestEmail }
+      });
+    
+      if (!guestUser) {
+        const hashedGuestPassword = await bcrypt.hash(guestPassword, 10);
+        guestUser = await prisma.user.create({
+          data: {
+            email: guestEmail,
+            name: 'Guest',
+            password: hashedGuestPassword
+          }
+        });
+      }
+    
+      (await cookies()).set('user', JSON.stringify({
+        email: guestUser.email,
+        name: guestUser.name
+      }));
+    
+      return NextResponse.json({
+        success: true,
+        user: {
+          email: guestUser.email,
+          name: guestUser.name
+        }
+      });
     }
     
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });

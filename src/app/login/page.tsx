@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import Button from "@/components/ui/Button";
@@ -13,7 +13,17 @@ export default function Login() {
   const [isLogin, setIsLogin] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, isAuthenticated, isInitialized } = useAuth();
+
+  useEffect(() => {
+    if (isInitialized && isAuthenticated) {
+      router.push("/user");
+    }
+  }, [isInitialized, isAuthenticated, router]);
+
+  if (!isInitialized) {
+    return null;
+  }
 
   interface LoginForm {
     email: string;
@@ -78,6 +88,26 @@ export default function Login() {
     }
   };
 
+  const handleGuestLogin = async () => {
+    setIsSubmitting(true);
+    try {
+      const res = await fetch("/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "guestLogin" }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        login({ email: data.user.email, name: data.user.name });
+        router.push("/user");
+      } else {
+        alert("Guest login failed");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-8">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 w-full max-w-md">
@@ -119,16 +149,37 @@ export default function Login() {
         >
           {isSubmitting ? "Processing..." : (isLogin ? "Log In" : "Create Account")}
         </Button>
-
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={() => setIsLogin(!isLogin)}
-          fullWidth
-          className="mt-2"
-        >
-          {isLogin ? "Create an account" : "Log in with existing account"}
-        </Button>
+        {isLogin && (
+          <p className="text-sm mt-1 w-full">
+            <span className="text-gray-600">Not registered? </span>
+            <a
+              href="#"
+              onClick={() => setIsLogin(false)}
+              className="text-blue-500 hover:underline"
+            >
+              Create an account
+            </a>{" "}
+            or{" "}
+            <a
+              href="#"
+              onClick={handleGuestLogin}
+              className="text-blue-500 hover:underline"
+            >
+              Log in as guest
+            </a>
+          </p>
+        )}
+        {!isLogin && (
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setIsLogin(true)}
+            fullWidth
+            className="mt-2"
+          >
+            Log in with existing account
+          </Button>
+        )}
       </form>
     </div>
   );
