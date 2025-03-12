@@ -2,26 +2,58 @@
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
+
+interface UserStats {
+  finishedWorkouts: number;
+  createdTemplates: number;
+  favoriteExercise: {
+    name: string;
+    count: number;
+  } | null;
+}
 
 export default function User() {
   const { user, logout, isAuthenticated } = useAuth();
   const router = useRouter();
+  const [stats, setStats] = useState<UserStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
+  // Redirect if not authenticated
   useEffect(() => {
     if (!isAuthenticated) {
       router.push("/login");
     }
   }, [isAuthenticated, router]);
 
-  if (!user) {
-    return <div>Loading...</div>;
-  }
+  // Fetch user statistics
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (isAuthenticated) {
+        try {
+          const res = await fetch("/api/user/stats");
+          if (res.ok) {
+            const data = await res.json();
+            setStats(data);
+          }
+        } catch (error) {
+          console.error("Failed to fetch stats:", error);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
 
-  // Dummy stats for demonstration
-  const finishedWorkouts = 12;
-  const createdTemplates = 5;
-  const favoriteExercises = 8;
+    fetchStats();
+  }, [isAuthenticated]);
+
+  if (!user || isLoading) {
+    return (
+      <div className="min-h-screen flex justify-center items-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
@@ -30,15 +62,22 @@ export default function User() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white shadow rounded-lg p-4 text-center">
           <p className="text-xl font-semibold">Finished Workouts</p>
-          <p className="text-3xl text-blue-600 mt-2">{finishedWorkouts}</p>
+          <p className="text-3xl text-blue-600 mt-2">{stats?.finishedWorkouts || 0}</p>
         </div>
         <div className="bg-white shadow rounded-lg p-4 text-center">
           <p className="text-xl font-semibold">Created Templates</p>
-          <p className="text-3xl text-green-600 mt-2">{createdTemplates}</p>
+          <p className="text-3xl text-green-600 mt-2">{stats?.createdTemplates || 0}</p>
         </div>
         <div className="bg-white shadow rounded-lg p-4 text-center">
-          <p className="text-xl font-semibold">Favorite Exercises</p>
-          <p className="text-3xl text-purple-600 mt-2">{favoriteExercises}</p>
+          <p className="text-xl font-semibold">Most Performed Exercise</p>
+          {stats?.favoriteExercise ? (
+            <>
+              <p className="text-3xl text-purple-600 mt-2">{stats.favoriteExercise.name}</p>
+              <p className="text-sm text-gray-500">Performed {stats.favoriteExercise.count} times</p>
+            </>
+          ) : (
+            <p className="text-gray-500 mt-2">No exercises recorded yet</p>
+          )}
         </div>
       </div>
 
