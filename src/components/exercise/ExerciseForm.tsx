@@ -59,9 +59,10 @@ const ExerciseForm: React.FC<ExerciseFormProps> = ({
       </div>
 
       <Button
-        variant="primary"
         onClick={onAddSet}
-        className="mt-3 text-sm py-1 px-2"
+        type="button"
+        variant="secondary"
+        className="mt-3"
       >
         + Add Set
       </Button>
