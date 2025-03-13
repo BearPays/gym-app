@@ -5,6 +5,116 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
+import Card from "@/components/ui/Card";
+
+// Let's extract the form into a component for better organization
+interface AuthFormProps {
+  isLogin: boolean;
+  isSubmitting: boolean;
+  email: string;
+  setEmail: (email: string) => void;
+  password: string;
+  setPassword: (password: string) => void;
+  name: string;
+  setName: (name: string) => void;
+  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+  onToggleMode: () => void;
+  onGuestLogin: () => void;
+}
+
+const AuthForm = ({ 
+  isLogin, 
+  isSubmitting, 
+  email, 
+  setEmail, 
+  password, 
+  setPassword, 
+  name, 
+  setName, 
+  onSubmit, 
+  onToggleMode, 
+  onGuestLogin 
+}: AuthFormProps) => {
+  return (
+    <form onSubmit={onSubmit} className="flex flex-col gap-4">
+      {!isLogin && (
+        <Input
+          id="name"
+          label="Name"
+          placeholder="Enter your name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required={!isLogin}
+          className="bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
+        />
+      )}
+
+      <Input
+        id="email"
+        type="email"
+        label="Email"
+        placeholder="Enter your email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        required
+        className="bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
+      />
+      
+      <Input
+        id="password"
+        type="password"
+        label="Password"
+        placeholder="Enter your password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        required
+        className="bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
+      />
+
+      <Button 
+        type="submit" 
+        fullWidth 
+        className="mt-4 bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 text-white"
+        disabled={isSubmitting}
+      >
+        {isSubmitting ? "Processing..." : (isLogin ? "Log In" : "Create Account")}
+      </Button>
+      
+      {isLogin ? (
+        <div className="mt-4 space-y-2">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={onToggleMode}
+            fullWidth
+            className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600"
+          >
+            Create New Account
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onGuestLogin}
+            fullWidth
+            className="border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
+          >
+            Continue as Guest
+          </Button>
+        </div>
+      ) : (
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={onToggleMode}
+          fullWidth
+          className="mt-4 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600"
+        >
+          Back to Login
+        </Button>
+      )}
+    </form>
+  );
+};
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -109,78 +219,28 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-8">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4 w-full max-w-md">
-        <h1 className="text-2xl font-bold text-center mb-4">{isLogin ? "Log In" : "Create Account"}</h1>
-
-        {!isLogin && (
-          <Input
-            id="name"
-            placeholder="Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required={!isLogin}
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gray-100 dark:bg-gray-900">
+      <Card className="w-full max-w-md">
+        <div className="p-6">
+          <h1 className="text-2xl font-bold text-center mb-6 text-gray-900 dark:text-white">
+            {isLogin ? "Welcome Back" : "Create Your Account"}
+          </h1>
+          
+          <AuthForm
+            isLogin={isLogin}
+            isSubmitting={isSubmitting}
+            email={email}
+            setEmail={setEmail}
+            password={password}
+            setPassword={setPassword}
+            name={name}
+            setName={setName}
+            onSubmit={handleSubmit}
+            onToggleMode={() => setIsLogin(!isLogin)}
+            onGuestLogin={handleGuestLogin}
           />
-        )}
-
-        <Input
-          id="email"
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        
-        <Input
-          id="password"
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-
-        <Button 
-          type="submit" 
-          fullWidth 
-          className="mt-2"
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? "Processing..." : (isLogin ? "Log In" : "Create Account")}
-        </Button>
-        {isLogin && (
-          <p className="text-sm mt-1 w-full">
-            <span className="text-gray-600">Not registered? </span>
-            <a
-              href="#"
-              onClick={() => setIsLogin(false)}
-              className="text-blue-500 hover:underline"
-            >
-              Create an account
-            </a>{" "}
-            or{" "}
-            <a
-              href="#"
-              onClick={handleGuestLogin}
-              className="text-blue-500 hover:underline"
-            >
-              Log in as guest
-            </a>
-          </p>
-        )}
-        {!isLogin && (
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => setIsLogin(true)}
-            fullWidth
-            className="mt-2"
-          >
-            Log in with existing account
-          </Button>
-        )}
-      </form>
+        </div>
+      </Card>
     </div>
   );
 }

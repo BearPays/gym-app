@@ -1,21 +1,28 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+
+export default function HomePage() {
+  const { isAuthenticated, isInitialized } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isInitialized) {
+      if (isAuthenticated) {
+        router.push("/user");
+      } else {
+        router.push("/login");
+      }
+    }
+  }, [isAuthenticated, isInitialized, router]);
+
+  // Show a loading state while checking authentication
   return (
-    <div className="min-h-screen p-8 pb-20 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <div className="flex items-center gap-4">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-      </div>
-      <main className="flex flex-col gap-8 items-center sm:items-start">
-        {/* Add content here */}
-      </main>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-gray-900">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <p className="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
     </div>
   );
 }
