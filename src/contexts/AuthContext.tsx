@@ -24,17 +24,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   // Load user from localStorage on initial render
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-        setIsAuthenticated(true);
-      } catch (e) {
-        console.error("Error parsing stored user:", e);
+    // Check if we're in the browser environment
+    if (typeof window !== 'undefined') {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+          setIsAuthenticated(true);
+        } catch (e) {
+          console.error("Error parsing stored user:", e);
+        }
       }
+      setIsInitialized(true);
     }
-    setIsInitialized(true);
   }, []);
   
   const login = (userData: User) => {

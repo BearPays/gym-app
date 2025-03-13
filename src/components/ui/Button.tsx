@@ -3,12 +3,14 @@ import React, { ButtonHTMLAttributes } from "react";
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "danger" | "success" | "outline";
   fullWidth?: boolean;
+  size?: "sm" | "md" | "lg"; // Add size prop
 }
 
 const Button: React.FC<ButtonProps> = ({
   children,
   variant = "primary",
   fullWidth = false,
+  size = "md", // Default size
   className = "",
   ...props
 }) => {
@@ -31,12 +33,26 @@ const Button: React.FC<ButtonProps> = ({
       variantClasses = "bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-white";
       break;
   }
+
+  // Size classes
+  let sizeClasses = "";
+  switch (size) {
+    case "sm":
+      sizeClasses = "px-3 py-1 text-sm";
+      break;
+    case "lg":
+      sizeClasses = "px-6 py-3 text-lg";
+      break;
+    default: // md
+      sizeClasses = "px-4 py-2";
+      break;
+  }
   
   const widthClass = fullWidth ? "w-full" : "";
   
   return (
     <button
-      className={`px-4 py-2 rounded-md transition-colors ${variantClasses} ${widthClass} 
+      className={`rounded-md transition-colors ${variantClasses} ${sizeClasses} ${widthClass} 
         disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
       {...props}
     >
