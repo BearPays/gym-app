@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useState, useEffect, useContext } from "react";
+import { useAuth } from "./AuthContext";
 
 export type WorkoutSet = {
   id: string;
@@ -41,33 +42,48 @@ const WorkoutContext = createContext<WorkoutContextType | undefined>(undefined);
 export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeWorkout, setActiveWorkout] = useState<ActiveWorkout | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  // const { user } = useAuth();
+  const { user } = useAuth();
+  
+  // Use user-specific localStorage key
+  const getStorageKey = () => {
+    return user ? `activeWorkout_${user.email}` : null;
+  };
 
   // Load any active workout from localStorage on initial render
   useEffect(() => {
-    const storedWorkout = localStorage.getItem('activeWorkout');
+    if (!user) return; // Don't load anything if no user
+    
+    const storageKey = getStorageKey();
+    if (!storageKey) return;
+    
+    const storedWorkout = localStorage.getItem(storageKey);
     if (storedWorkout) {
       try {
         const parsedWorkout = JSON.parse(storedWorkout);
         setActiveWorkout(parsedWorkout);
       } catch (e) {
         console.error("Error parsing stored workout:", e);
-        localStorage.removeItem('activeWorkout');
+        localStorage.removeItem(storageKey);
       }
     }
-  }, []);
+  }, [user]); // Re-run when user changes
 
   // Save activeWorkout to localStorage whenever it changes
   useEffect(() => {
+    const storageKey = getStorageKey();
+    if (!storageKey) return;
+    
     if (activeWorkout) {
-      localStorage.setItem('activeWorkout', JSON.stringify(activeWorkout));
+      localStorage.setItem(storageKey, JSON.stringify(activeWorkout));
     } else {
-      localStorage.removeItem('activeWorkout');
+      localStorage.removeItem(storageKey);
     }
-  }, [activeWorkout]);
+  }, [activeWorkout, user]);
 
   // Start a new workout, optionally based on a template
   const startWorkout = (templateId?: string, templateName?: string, templateExercises?: WorkoutExercise[]) => {
+    if (!user) return; // Prevent starting workout if not logged in
+    
     const newWorkout: ActiveWorkout = {
       id: Date.now().toString(),
       templateId,
@@ -81,7 +97,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // End the current workout and save it to the database
   const endWorkout = async (): Promise<boolean> => {
-    if (!activeWorkout) return false;
+    if (!activeWorkout || !user) return false;
     
     setIsSaving(true);
     
