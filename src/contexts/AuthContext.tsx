@@ -12,7 +12,7 @@ type AuthContextType = {
   login: (user: User) => void;
   logout: () => void;
   isAuthenticated: boolean;
-  isInitialized: boolean; // new context value
+  isInitialized: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,40 +22,107 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   
-  // Load user from localStorage on initial render
+  // Check session status on initial render
   useEffect(() => {
-    // Check if we're in the browser environment
-    if (typeof window !== 'undefined') {
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        try {
-          const parsedUser = JSON.parse(storedUser);
-          setUser(parsedUser);
-          setIsAuthenticated(true);
-        } catch (e) {
-          console.error("Error parsing stored user:", e);
+    const checkAuthStatus = async () => {
+      try {
+        // Try to get user info from the non-HTTP-only cookie (contains just the user's name)
+        const userInfoCookie = getCookieValue('user_info');
+        
+        if (userInfoCookie) {
+          // Parse the user info cookie
+          const userInfo = JSON.parse(userInfoCookie);
+          
+          // Validate the session by making an API call
+          const response = await fetch('/api/auth/validate', {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include', // Important for cookies to be sent
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            // If session is valid, set the user state
+            if (data.authenticated) {
+              setUser({
+                name: userInfo.name,
+                email: data.email,
+              });
+              setIsAuthenticated(true);
+            } else {
+              // Invalid session
+              setUser(null);
+              setIsAuthenticated(false);
+            }
+          } else {
+            // API error
+            setUser(null);
+            setIsAuthenticated(false);
+          }
+        } else {
+          // No user info cookie found
+          setUser(null);
+          setIsAuthenticated(false);
         }
+      } catch (e) {
+        console.error("Error checking auth status:", e);
+        setUser(null);
+        setIsAuthenticated(false);
+      } finally {
+        setIsInitialized(true);
       }
-      setIsInitialized(true);
-    }
+    };
+    
+    checkAuthStatus();
   }, []);
   
-  const login = (userData: User) => {
-    setUser(userData);
-    setIsAuthenticated(true);
-    localStorage.setItem('user', JSON.stringify(userData));
+  // Helper function to get a cookie value by name
+  const getCookieValue = (name: string): string | null => {
+    if (typeof document === 'undefined') return null; // SSR check
     
-    // In a real app, this would set a proper HTTP-only cookie via the API
-    document.cookie = `user=${JSON.stringify(userData)}; path=/; max-age=${60*60*24*30}`;
+    const cookies = document.cookie.split('; ');
+    for (const cookie of cookies) {
+      const [cookieName, cookieValue] = cookie.split('=');
+      if (cookieName === name) {
+        return decodeURIComponent(cookieValue);
+      }
+    }
+    return null;
   };
   
-  const logout = () => {
-    setUser(null);
-    setIsAuthenticated(false);
-    localStorage.removeItem('user');
+  const login = (userData: User) => {
+    if (!userData) return;
     
-    // Clear the cookie
-    document.cookie = "user=; path=/; max-age=0";
+    setUser(userData);
+    setIsAuthenticated(true);
+    
+    // The HTTP-only cookie is set by the server in the API response
+    // We don't need to set it here
+  };
+  
+  const logout = async () => {
+    try {
+      // Call the logout API to clear the HTTP-only cookie on the server
+      await fetch('/api/auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          action: 'logout',
+          userId: user?.email // Send userId if available for server-side cleanup
+        }),
+        credentials: 'include', // Important for cookies to be sent
+      });
+    } catch (e) {
+      console.error("Error during logout:", e);
+    } finally {
+      // Clear local state regardless of API success
+      setUser(null);
+      setIsAuthenticated(false);
+    }
   };
   
   return (
@@ -64,7 +131,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       login, 
       logout, 
       isAuthenticated,
-      isInitialized // new context value
+      isInitialized
     }}>
       {children}
     </AuthContext.Provider>

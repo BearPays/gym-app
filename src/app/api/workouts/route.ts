@@ -1,62 +1,69 @@
 import NodeCache from "node-cache";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { cookies } from "next/headers";
+import { getUserIdFromSession } from "@/lib/auth";
 
-// Helper function to get user ID from cookie/session
+// Helper function to get user ID from session
 async function getUserId() {
-  const userCookies = await cookies();
-  const userCookie = userCookies.get('user')?.value;
-  if (!userCookie) return null;
-  
-  try {
-    const userData = JSON.parse(userCookie);
-    const user = await prisma.user.findUnique({
-      where: { email: userData.email }
-    });
-    return user?.id;
-  } catch {
-    return null;
-  }
+  return await getUserIdFromSession();
 }
 
 const cache = new NodeCache({ stdTTL: 300 }); // Cache for 5 minutes
 
 // GET /api/workouts - Get all workouts for the logged-in user
 export async function GET() {
-  const cacheKey = "workouts";
-  const cachedWorkouts = cache.get(cacheKey);
-
-  if (cachedWorkouts) {
-    return NextResponse.json(cachedWorkouts);
-  }
-
   try {
     const userId = await getUserId();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Use user-specific cache key
+    const cacheKey = `workouts-${userId}`;
+    const cachedWorkouts = cache.get(cacheKey);
+
+    if (cachedWorkouts) {
+      return NextResponse.json(cachedWorkouts);
+    }
+
+    // Get all workout sessions for this user
     const workouts = await prisma.workoutSession.findMany({
       where: { userId },
       include: {
         workoutTemplate: {
-          select: { name: true },
+          select: { name: true }
         },
         exercises: {
           include: {
             exercise: true,
             sets: {
-              orderBy: { order: "asc" },
-            },
-          },
-        },
+              orderBy: { order: 'asc' }
+            }
+          }
+        }
       },
-      orderBy: { startTime: "desc" },
+      orderBy: { startTime: 'desc' }
     });
-
-    cache.set(cacheKey, workouts);
-    return NextResponse.json(workouts);
+    
+    // Format the response
+    const formattedWorkouts = workouts.map(workout => ({
+      id: workout.id,
+      templateName: workout.workoutTemplate?.name || 'Custom Workout',
+      startTime: workout.startTime.toISOString(),
+      endTime: workout.endTime?.toISOString(),
+      isActive: !workout.endTime,
+      exercises: workout.exercises.map(ex => ({
+        id: ex.id,
+        name: ex.exercise.name,
+        sets: ex.sets.map(set => ({
+          reps: set.reps,
+          weight: set.weight,
+        }))
+      }))
+    }));
+    
+    cache.set(cacheKey, formattedWorkouts);
+    return NextResponse.json(formattedWorkouts);
   } catch (error) {
     console.error("Error fetching workouts:", error);
     return NextResponse.json({ error: "Failed to fetch workouts" }, { status: 500 });
@@ -114,6 +121,9 @@ export async function POST(request: Request) {
       
       return workoutSession;
     });
+    
+    // Invalidate the workouts cache for this user after creating a new workout
+    cache.del(`workouts-${userId}`);
     
     return NextResponse.json(result, { status: 201 });
   } catch (error) {

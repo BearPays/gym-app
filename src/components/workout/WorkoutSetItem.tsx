@@ -1,65 +1,63 @@
 import React from "react";
-import Button from "@/components/ui/Button";
-import { WorkoutSet } from "@/contexts/WorkoutContext";
+import { useSwipeable } from "react-swipeable";
 
-interface WorkoutSetItemProps {
-  set: WorkoutSet;
+interface SetItemProps {
   setNumber: number;
-  onUpdateSet: (field: keyof WorkoutSet, value: number | boolean) => void;
-  onRemoveSet: () => void;
+  reps: number;
+  weight: number;
+  isCompleted: boolean;
+  onRepsChange: (value: number) => void;
+  onWeightChange: (value: number) => void;
+  onCompletionChange: (completed: boolean) => void;
+  onDelete: () => void;
 }
 
-const WorkoutSetItem: React.FC<WorkoutSetItemProps> = ({
-  set,
-  setNumber,
-  onUpdateSet,
-  onRemoveSet,
-}) => {
+const SetItem: React.FC<SetItemProps> = ({ setNumber, reps, weight, isCompleted, onRepsChange, onWeightChange, onCompletionChange, onDelete }) => {
+  const handleFocus = (event: React.FocusEvent<HTMLInputElement>) => {
+    event.target.select(); // Select all text when the field is focused
+  };
+
+  const swipeHandlers = useSwipeable({
+    onSwipedLeft: onDelete,
+    preventScrollOnSwipe: true,
+    trackMouse: true,
+  });
+
   return (
-    <div className="grid grid-cols-12 items-center py-2">
-      <div className="col-span-1 font-medium">{setNumber}</div>
-      
-      <div className="col-span-3">
+    <div {...swipeHandlers} className="flex items-center gap-4 bg-white dark:bg-gray-800 p-3 rounded-md shadow-md">
+      <div className="w-12 text-center font-medium text-gray-700 dark:text-gray-300">
+        {setNumber}
+      </div>
+      <div className="flex-1">
         <input
           type="number"
-          min="0"
-          step="1.25"
-          value={set.weight}
-          onChange={(e) => onUpdateSet('weight', parseFloat(e.target.value) || 0)}
-          className="w-full p-1 border border-gray-300 rounded text-center"
+          inputMode="numeric"
+          value={weight}
+          onChange={(e) => onWeightChange(Number(e.target.value))}
+          onFocus={handleFocus}
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-white appearance-none [appearance:textfield] [&::-webkit-outer-spin-button]:hidden [&::-webkit-inner-spin-button]:hidden"
         />
       </div>
-      
-      <div className="col-span-3">
+      <div className="flex-1">
         <input
           type="number"
-          min="0"
-          value={set.reps}
-          onChange={(e) => onUpdateSet('reps', parseInt(e.target.value) || 0)}
-          className="w-full p-1 border border-gray-300 rounded text-center"
+          inputMode="numeric"
+          value={reps}
+          onChange={(e) => onRepsChange(Number(e.target.value))}
+          onFocus={handleFocus}
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-white appearance-none [appearance:textfield] [&::-webkit-outer-spin-button]:hidden [&::-webkit-inner-spin-button]:hidden"
         />
       </div>
-      
-      <div className="col-span-3 text-center">
+      <div>
         <input
           type="checkbox"
-          checked={set.completed}
-          onChange={(e) => onUpdateSet('completed', e.target.checked)}
-          className="h-5 w-5 accent-blue-600"
+          checked={isCompleted}
+          onChange={(e) => onCompletionChange(e.target.checked)}
+          className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
         />
-      </div>
-      
-      <div className="col-span-2 text-right">
-        <Button 
-          variant="danger" 
-          onClick={onRemoveSet}
-          className="text-sm py-1"
-        >
-          Remove
-        </Button>
       </div>
     </div>
   );
 };
 
-export default WorkoutSetItem;
+export default SetItem;

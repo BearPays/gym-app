@@ -74,7 +74,16 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (!storageKey) return;
     
     if (activeWorkout) {
-      localStorage.setItem(storageKey, JSON.stringify(activeWorkout));
+      try {
+        // Generate a timestamp to help with concurrency issues
+        const workoutWithTimestamp = {
+          ...activeWorkout,
+          lastUpdated: new Date().toISOString()
+        };
+        localStorage.setItem(storageKey, JSON.stringify(workoutWithTimestamp));
+      } catch (err) {
+        console.error("Error saving workout to localStorage:", err);
+      }
     } else {
       localStorage.removeItem(storageKey);
     }

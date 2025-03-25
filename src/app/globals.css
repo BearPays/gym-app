@@ -46,3 +46,16 @@ body {
 .nav-link:hover {
   background-color: #3b82f6; /* lighter blue (bg-blue-500) */
 }
+
+/* Remove spinner controls from number input fields */
+input[type="number"] {
+  -moz-appearance: textfield; /* For Firefox */
+  appearance: textfield; /* For modern browsers */
+}
+
+/* Remove spinner controls for WebKit browsers (Chrome, Edge, Safari) */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}

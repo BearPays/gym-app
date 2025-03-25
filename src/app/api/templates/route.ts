@@ -1,41 +1,29 @@
-import NodeCache from "node-cache";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { cookies } from "next/headers";
-
-// Helper function to get user ID from cookie/session
-async function getUserId() {
-  const userCookie = (await cookies()).get('user')?.value;
-  if (!userCookie) return null;
-  
-  try {
-    const userData = JSON.parse(userCookie);
-    // In a real app, you'd verify this with a proper session check
-    // For this demo, we'll find the user by email
-    const user = await prisma.user.findUnique({
-      where: { email: userData.email }
-    });
-    return user?.id;
-  } catch {
-    return null;
-  }
-}
+import { getUserIdFromSession } from "@/lib/auth";
+import NodeCache from "node-cache";
 
 const cache = new NodeCache({ stdTTL: 300 }); // Cache for 5 minutes
 
+// Helper function to get user ID from session
+async function getUserId() {
+  return await getUserIdFromSession();
+}
+
 // GET /api/templates - Get all templates for the logged-in user
 export async function GET() {
-  const cacheKey = "templates";
-  const cachedTemplates = cache.get(cacheKey);
-
-  if (cachedTemplates) {
-    return NextResponse.json(cachedTemplates);
-  }
-
   try {
     const userId = await getUserId();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Use user-specific cache key
+    const cacheKey = `templates-${userId}`;
+    const cachedTemplates = cache.get(cacheKey);
+
+    if (cachedTemplates) {
+      return NextResponse.json(cachedTemplates);
     }
 
     const templates = await prisma.workoutTemplate.findMany({
@@ -113,6 +101,9 @@ export async function POST(request: Request) {
       
       return workoutTemplate;
     });
+    
+    // Invalidate the templates cache for this user after creating a new template
+    cache.del(`templates-${userId}`);
     
     return NextResponse.json(result, { status: 201 });
   } catch (error) {

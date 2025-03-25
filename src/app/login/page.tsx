@@ -161,14 +161,21 @@ export default function Login() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(loginData),
+          credentials: 'include', // Important: include cookies in the request/response
         });
 
         if (res.ok) {
-          // For demo purposes, we'll just use the email and a dummy name
-          login({ email, name: email.split('@')[0] });
+          const data = await res.json();
+          // The session cookie is set by the server
+          // We just need to update the UI state
+          login({ 
+            email: data.user.email, 
+            name: data.user.name || email.split('@')[0] 
+          });
           router.push("/user");
         } else {
-          alert("Login failed");
+          const errorData = await res.json();
+          alert(errorData.error || "Login failed");
         }
       } else {
         // 2) REGISTER
@@ -178,21 +185,25 @@ export default function Login() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(registerData),
+          credentials: 'include', // Important: include cookies in the request/response
         });
 
         if (res.ok) {
-          // For demo purposes
-          login({ email, name });
+          const data = await res.json();
+          // The session cookie is set by the server
+          login({ 
+            email: data.user.email, 
+            name: data.user.name 
+          });
           router.push("/user");
         } else {
-          alert("Registration failed");
+          const errorData = await res.json();
+          alert(errorData.error || "Registration failed");
         }
       }
-    } catch {
-      // For demo purposes, simulate successful login/registration without backend
-      console.log("Simulating successful authentication");
-      login({ email, name: name || email.split('@')[0] });
-      router.push("/user");
+    } catch (error) {
+      console.error("Authentication error:", error);
+      alert("An error occurred during authentication. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -205,14 +216,24 @@ export default function Login() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "guestLogin" }),
+        credentials: 'include', // Important: include cookies in the request/response
       });
+      
       if (res.ok) {
         const data = await res.json();
-        login({ email: data.user.email, name: data.user.name });
+        // The session cookie is set by the server
+        login({ 
+          email: data.user.email, 
+          name: data.user.name || 'Guest' 
+        });
         router.push("/user");
       } else {
-        alert("Guest login failed");
+        const errorData = await res.json();
+        alert(errorData.error || "Guest login failed");
       }
+    } catch (error) {
+      console.error("Guest login error:", error);
+      alert("An error occurred during guest login. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

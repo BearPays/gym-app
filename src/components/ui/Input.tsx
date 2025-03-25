@@ -3,9 +3,10 @@ import React, { InputHTMLAttributes } from "react";
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   id: string;
   label?: string;
+  error?: string; // Add error message support
 }
 
-const Input: React.FC<InputProps> = ({ id, label, className = "", ...props }) => {
+const Input: React.FC<InputProps> = ({ id, label, error, className = "", ...props }) => {
   return (
     <div className="w-full">
       {label && (
@@ -18,11 +19,15 @@ const Input: React.FC<InputProps> = ({ id, label, className = "", ...props }) =>
       )}
       <input
         id={id}
-        className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md 
-                   shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 
-                   dark:bg-gray-800 dark:text-white ${className}`}
+        className={`w-full px-4 py-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 
+                   dark:bg-gray-800 dark:text-white dark:focus:ring-blue-400 dark:focus:border-blue-400 
+                   ${error ? "border-red-500 focus:ring-red-500 focus:border-red-500" : "border-gray-300 dark:border-gray-700"} 
+                   ${className}`}
         {...props}
       />
+      {error && (
+        <p className="mt-1 text-sm text-red-500">{error}</p>
+      )}
     </div>
   );
 };

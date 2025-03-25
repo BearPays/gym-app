@@ -126,23 +126,25 @@ export default function ActiveWorkout() {
     : 0;
 
   return (
-    <div className="min-h-screen p-8 pb-24">
+    <div className="min-h-screen p-4 pb-24 bg-gray-50 dark:bg-gray-900">
       <div className="flex items-center mb-6">
         <Link href="/workouts" className="mr-4">
-          <Button variant="secondary">← Back</Button>
+          <Button variant="secondary" size="sm">← Back</Button>
         </Link>
-        <h1 className="text-2xl font-bold">{activeWorkout.templateName || 'Custom Workout'}</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white truncate">
+          {activeWorkout.templateName || 'Custom Workout'}
+        </h1>
       </div>
 
-      <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg mb-6">
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg mb-6 shadow-md">
         <div className="flex flex-wrap justify-between items-center">
           <div>
-            <p className="text-gray-600 dark:text-gray-300">Started: {new Date(activeWorkout.startTime).toLocaleTimeString()}</p>
-            <p className="text-gray-600 dark:text-gray-300">Duration: {workoutDuration}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-300">Started: {new Date(activeWorkout.startTime).toLocaleTimeString()}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-300">Duration: {workoutDuration}</p>
           </div>
           <div className="text-right">
-            <p className="text-lg font-semibold">{completionPercentage}% Complete</p>
-            <p className="text-sm">{completedSets} / {totalSets} sets</p>
+            <p className="text-lg font-semibold text-gray-900 dark:text-white">{completionPercentage}% Complete</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">{completedSets} / {totalSets} sets</p>
           </div>
         </div>
 
@@ -156,7 +158,7 @@ export default function ActiveWorkout() {
 
       <div className="mb-8">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Exercises</h2>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Exercises</h2>
           <ExercisePickerModal
             providedExercises={availableExercises}
             onSelectExercise={handleAddExercise}
@@ -165,13 +167,13 @@ export default function ActiveWorkout() {
           />
         </div>
         
-        <p className="text-gray-600 dark:text-gray-300 mb-4">
+        <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
           {activeWorkout.exercises.length} exercise{activeWorkout.exercises.length !== 1 ? 's' : ''} added
         </p>
         
         {activeWorkout.exercises.length === 0 ? (
-          <div className="text-center py-10 border border-dashed border-gray-300 rounded-lg">
-            <p className="mb-4">No exercises added yet. Add your first exercise to start.</p>
+          <div className="text-center py-10 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg">
+            <p className="mb-4 text-gray-600 dark:text-gray-300">No exercises added yet. Add your first exercise to start.</p>
             <ExercisePickerModal
               providedExercises={availableExercises}
               onSelectExercise={handleAddExercise}
@@ -199,11 +201,12 @@ export default function ActiveWorkout() {
         )}
       </div>
       
-      <div className="fixed bottom-20 left-0 right-0 p-4 bg-white dark:bg-black border-t border-gray-200 dark:border-gray-800">
+      <div className="fixed bottom-16 left-0 right-0 p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
         <Button
           variant="success"
           onClick={handleFinishWorkout}
           fullWidth
+          size="lg"
           disabled={isFinishing || isSaving || activeWorkout.exercises.length === 0}
         >
           {isFinishing ? "Finishing..." : "Finish Workout"}

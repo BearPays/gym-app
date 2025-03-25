@@ -32,7 +32,9 @@ export default function User() {
     const fetchStats = async () => {
       if (isAuthenticated) {
         try {
-          const res = await fetch("/api/user/stats");
+          const res = await fetch("/api/user/stats", {
+            credentials: 'include', // Include cookies in the request
+          });
           if (res.ok) {
             const data = await res.json();
             setStats(data);

@@ -1,22 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
+import { getUserIdFromSession } from '@/lib/auth';
 
-// Helper function to get user ID from cookie/session
+// Helper function to get user ID from session
 async function getUserId() {
-  const userCookies = await cookies();
-  const userCookie = userCookies.get('user')?.value;
-  if (!userCookie) return null;
-  
-  try {
-    const userData = JSON.parse(userCookie);
-    const user = await prisma.user.findUnique({
-      where: { email: userData.email }
-    });
-    return user?.id;
-  } catch {
-    return null;
-  }
+  return await getUserIdFromSession();
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
