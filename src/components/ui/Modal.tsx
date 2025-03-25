@@ -3,6 +3,7 @@
 import React, { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { FiX } from "react-icons/fi";
+import Button from "./Button"; // Assuming Button is a custom component
 
 interface ModalProps {
   isOpen: boolean;
@@ -107,7 +108,7 @@ const Modal: React.FC<ModalProps> = ({
       >
         <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold">{title || "Modal"}</h3>
-          <button
+          <Button
             onClick={(e) => {
               e.stopPropagation(); 
               onClose();
@@ -116,7 +117,7 @@ const Modal: React.FC<ModalProps> = ({
             type="button"
           >
             <FiX size={20} />
-          </button>
+          </Button>
         </div>
         <div className="p-4 max-h-[calc(100vh-12rem)] overflow-y-auto">
           {children}

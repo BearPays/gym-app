@@ -73,7 +73,13 @@ export async function GET() {
           name: true,
           _count: {
             select: {
-              workoutSessionExercises: true
+              workoutSessionExercises: {
+                where: {
+                  workoutSession: {
+                    userId
+                  }
+                }
+              }
             }
           }
         }

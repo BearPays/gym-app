@@ -1,3 +1,4 @@
+import NodeCache from "node-cache";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
@@ -19,51 +20,43 @@ async function getUserId() {
   }
 }
 
+const cache = new NodeCache({ stdTTL: 300 }); // Cache for 5 minutes
+
 // GET /api/workouts - Get all workouts for the logged-in user
 export async function GET() {
+  const cacheKey = "workouts";
+  const cachedWorkouts = cache.get(cacheKey);
+
+  if (cachedWorkouts) {
+    return NextResponse.json(cachedWorkouts);
+  }
+
   try {
     const userId = await getUserId();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    
-    // Get all workout sessions for this user
+
     const workouts = await prisma.workoutSession.findMany({
       where: { userId },
       include: {
         workoutTemplate: {
-          select: { name: true }
+          select: { name: true },
         },
         exercises: {
           include: {
             exercise: true,
             sets: {
-              orderBy: { order: 'asc' }
-            }
-          }
-        }
+              orderBy: { order: "asc" },
+            },
+          },
+        },
       },
-      orderBy: { startTime: 'desc' }
+      orderBy: { startTime: "desc" },
     });
-    
-    // Format the response
-    const formattedWorkouts = workouts.map(workout => ({
-      id: workout.id,
-      templateName: workout.workoutTemplate?.name || 'Custom Workout',
-      startTime: workout.startTime.toISOString(),
-      endTime: workout.endTime?.toISOString(),
-      isActive: !workout.endTime,
-      exercises: workout.exercises.map(ex => ({
-        id: ex.id,
-        name: ex.exercise.name,
-        sets: ex.sets.map(set => ({
-          reps: set.reps,
-          weight: set.weight,
-        }))
-      }))
-    }));
-    
-    return NextResponse.json(formattedWorkouts);
+
+    cache.set(cacheKey, workouts);
+    return NextResponse.json(workouts);
   } catch (error) {
     console.error("Error fetching workouts:", error);
     return NextResponse.json({ error: "Failed to fetch workouts" }, { status: 500 });

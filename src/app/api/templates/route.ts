@@ -1,3 +1,4 @@
+import NodeCache from "node-cache";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
@@ -20,15 +21,23 @@ async function getUserId() {
   }
 }
 
+const cache = new NodeCache({ stdTTL: 300 }); // Cache for 5 minutes
+
 // GET /api/templates - Get all templates for the logged-in user
 export async function GET() {
+  const cacheKey = "templates";
+  const cachedTemplates = cache.get(cacheKey);
+
+  if (cachedTemplates) {
+    return NextResponse.json(cachedTemplates);
+  }
+
   try {
     const userId = await getUserId();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    
-    // Fetch templates for this specific user
+
     const templates = await prisma.workoutTemplate.findMany({
       where: { userId },
       select: {
@@ -36,9 +45,10 @@ export async function GET() {
         name: true,
         createdAt: true,
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: "desc" },
     });
-    
+
+    cache.set(cacheKey, templates);
     return NextResponse.json(templates);
   } catch (error) {
     console.error("Error fetching templates:", error);

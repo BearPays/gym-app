@@ -1,5 +1,11 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+import withPWA from 'next-pwa';
+
+const nextConfig = withPWA({
+  pwa: {
+    dest: 'public',
+    register: true,
+    skipWaiting: true,
+  },
   images: {
     domains: [
       'images.unsplash.com',
@@ -12,6 +18,6 @@ const nextConfig = {
     // Only use in development or if you trust all image sources
     // remotePatterns: [{ hostname: '*' }],
   },
-};
+});
 
 export default nextConfig;

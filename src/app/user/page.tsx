@@ -3,6 +3,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import Button from "@/components/ui/Button";
 
 interface UserStats {
   finishedWorkouts: number;
@@ -56,43 +57,44 @@ export default function User() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      {/* Dashboard Stats */}
-      <h1 className="text-3xl font-bold mb-6 text-center">Dashboard</h1>
+    <div className="min-h-screen p-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">User Dashboard</h1>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white shadow rounded-lg p-4 text-center">
-          <p className="text-xl font-semibold">Finished Workouts</p>
+        <div className="bg-gray-100 dark:bg-gray-800 shadow rounded-lg p-4 text-center">
+          <p className="text-xl font-semibold dark:text-white">Finished Workouts</p>
           <p className="text-3xl text-blue-600 mt-2">{stats?.finishedWorkouts || 0}</p>
         </div>
-        <div className="bg-white shadow rounded-lg p-4 text-center">
-          <p className="text-xl font-semibold">Created Templates</p>
+        <div className="bg-gray-100 dark:bg-gray-800 shadow rounded-lg p-4 text-center">
+          <p className="text-xl font-semibold dark:text-white">Created Templates</p>
           <p className="text-3xl text-green-600 mt-2">{stats?.createdTemplates || 0}</p>
         </div>
-        <div className="bg-white shadow rounded-lg p-4 text-center">
-          <p className="text-xl font-semibold">Most Performed Exercise</p>
+        <div className="bg-gray-100 dark:bg-gray-800 shadow rounded-lg p-4 text-center">
+          <p className="text-xl font-semibold dark:text-white">Most Performed Exercise</p>
           {stats?.favoriteExercise ? (
             <>
               <p className="text-3xl text-purple-600 mt-2">{stats.favoriteExercise.name}</p>
-              <p className="text-sm text-gray-500">Performed {stats.favoriteExercise.count} times</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Performed {stats.favoriteExercise.count} times</p>
             </>
           ) : (
-            <p className="text-gray-500 mt-2">No exercises recorded yet</p>
+            <p className="text-gray-500 dark:text-gray-400 mt-2">No exercises recorded yet</p>
           )}
         </div>
       </div>
 
-      {/* User Profile */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-2xl font-bold mb-4">User Profile</h2>
+      <div className="bg-gray-100 dark:bg-gray-800 shadow rounded-lg p-6">
+        <h2 className="text-2xl font-bold mb-4 dark:text-white">User Profile</h2>
         <div className="mb-4">
-          <h3 className="font-medium">Name:</h3>
-          <p>{user.name}</p>
+          <h3 className="font-medium dark:text-gray-300">Name:</h3>
+          <p className="dark:text-white">{user.name}</p>
         </div>
         <div className="mb-4">
-          <h3 className="font-medium">Email:</h3>
-          <p>{user.email}</p>
+          <h3 className="font-medium dark:text-gray-300">Email:</h3>
+          <p className="dark:text-white">{user.email}</p>
         </div>
-        <button
+        <Button
           onClick={() => {
             logout();
             router.push("/");
@@ -100,7 +102,7 @@ export default function User() {
           className="bg-red-500 text-white px-4 py-2 rounded"
         >
           Logout
-        </button>
+        </Button>
       </div>
     </div>
   );
