@@ -1,8 +1,11 @@
 import withPWA from 'next-pwa';
 
+const isProd = process.env.NODE_ENV === 'production';
+
 const nextConfig = withPWA({
   pwa: {
     dest: 'public',
+    disable: !isProd, // Disable PWA in development mode
     register: true,
     skipWaiting: true,
   },
@@ -12,11 +15,7 @@ const nextConfig = withPWA({
       'example.com',
       'storage.googleapis.com',
       'cdn.muscleandstrength.com',
-      // Add any other domains you might be using for exercise images
     ],
-    // This allows any external image URL, but is less secure
-    // Only use in development or if you trust all image sources
-    // remotePatterns: [{ hostname: '*' }],
   },
 });
 
