@@ -20,6 +20,10 @@ export const metadata: Metadata = {
   description: "Track your workouts and fitness progress",
   viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
   themeColor: "#3b82f6", // Blue color that matches Tailwind's blue-500
+  icons: {
+    icon: "/beargym.png",
+    apple: "/beargym.png"
+  }
 };
 
 export default function RootLayout({
@@ -31,8 +35,7 @@ export default function RootLayout({
     <html lang="en" className="h-full">
       <head>
         <link rel="manifest" href="/manifest.json" />
-        <link rel="icon" href="/icon-192x192.png" sizes="192x192" type="image/png" />
-        <link rel="icon" href="/icon-512x512.png" sizes="512x512" type="image/png" />
+        <link rel="icon" href="/beargym.png" type="image/png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="theme-color" content="#3b82f6" />
