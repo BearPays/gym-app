@@ -3,6 +3,12 @@ import { prisma } from './prisma';
 import { v4 as uuidv4 } from 'uuid';
 import { ResponseCookie } from 'next/dist/compiled/@edge-runtime/cookies';
 
+// Define a proper type for the cookie store
+interface ExtendedCookieStore {
+  get: (name: string) => { value: string } | undefined;
+  set: (name: string, value: string, options?: Partial<ResponseCookie>) => void;
+}
+
 interface SessionUser {
   id: string;
   email: string;
@@ -76,7 +82,7 @@ export function setSessionCookie(token: string): void {
     
     // Using lower-level method to set cookie
     // This is a workaround for type issues with the cookies() API
-    const store = cookieStore as any;
+    const store = cookieStore as unknown as ExtendedCookieStore;
     if (store && typeof store.set === 'function') {
       store.set('session', token, getSessionCookieOptions(expiresAt));
     }
@@ -106,7 +112,7 @@ export function setUserInfoCookie(name: string): void {
     const cookieStore = cookies();
     
     // Using lower-level method to set cookie
-    const store = cookieStore as any;
+    const store = cookieStore as unknown as ExtendedCookieStore;
     if (store && typeof store.set === 'function') {
       store.set('user_info', value, {
         secure: process.env.NODE_ENV === 'production',
@@ -128,7 +134,7 @@ function getCookie(name: string): { value: string } | undefined {
     const cookieStore = cookies();
     
     // Try to get the cookie using the API
-    const store = cookieStore as any;
+    const store = cookieStore as unknown as ExtendedCookieStore;
     if (store && typeof store.get === 'function') {
       return store.get(name);
     }
@@ -155,7 +161,7 @@ export async function validateSession(): Promise<SessionUser | null> {
     const sessionToken = sessionCookie.value;
     
     // Using raw SQL query to find session and associated user
-    const sessions = await prisma.$queryRawUnsafe<any[]>(`
+    const sessions = await prisma.$queryRawUnsafe<{ id: string; expiresAt: Date; userId: string; email: string; name: string }[]>(`
       SELECT s.id, s."expiresAt", u.id as "userId", u.email, u.name
       FROM "Session" s
       JOIN "User" u ON s."userId" = u.id
@@ -214,7 +220,7 @@ export function clearSessionCookies(): void {
     const cookieStore = cookies();
     
     // Using lower-level method to set cookie
-    const store = cookieStore as any;
+    const store = cookieStore as unknown as ExtendedCookieStore;
     if (store && typeof store.set === 'function') {
       // Clear session cookie
       store.set('session', '', {

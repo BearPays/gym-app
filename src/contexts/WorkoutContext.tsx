@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useState, useEffect, useContext } from "react";
+import React, { createContext, useState, useEffect, useContext, useCallback } from "react";
 import { useAuth } from "./AuthContext";
 
 export type WorkoutSet = {
@@ -45,9 +45,9 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const { user } = useAuth();
   
   // Use user-specific localStorage key
-  const getStorageKey = () => {
+  const getStorageKey = useCallback(() => {
     return user ? `activeWorkout_${user.email}` : null;
-  };
+  }, [user]);
 
   // Load any active workout from localStorage on initial render
   useEffect(() => {
@@ -66,7 +66,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
         localStorage.removeItem(storageKey);
       }
     }
-  }, [user]); // Re-run when user changes
+  }, [user, getStorageKey]); // Re-run when user changes
 
   // Save activeWorkout to localStorage whenever it changes
   useEffect(() => {
@@ -87,7 +87,7 @@ export const WorkoutProvider: React.FC<{ children: React.ReactNode }> = ({ child
     } else {
       localStorage.removeItem(storageKey);
     }
-  }, [activeWorkout, user]);
+  }, [activeWorkout, user, getStorageKey]);
 
   // Start a new workout, optionally based on a template
   const startWorkout = (templateId?: string, templateName?: string, templateExercises?: WorkoutExercise[]) => {
